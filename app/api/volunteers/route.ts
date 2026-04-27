@@ -41,6 +41,28 @@ export async function GET(request: Request) {
   }
 }
 
+// POST - Add new volunteer
+export async function POST(request: Request) {
+  try {
+    const volunteer = await request.json()
+
+    if (!volunteer.id || !volunteer.name) {
+      return NextResponse.json(
+        { success: false, error: "Missing required fields" },
+        { status: 400 }
+      )
+    }
+
+    const added = dataStore.addVolunteer(volunteer)
+    return NextResponse.json({ success: true, data: added })
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: "Failed to add volunteer" },
+      { status: 500 }
+    )
+  }
+}
+
 // PATCH - Update volunteer status
 export async function PATCH(request: Request) {
   try {

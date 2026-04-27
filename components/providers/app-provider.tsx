@@ -4,11 +4,13 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react"
 import { mutate } from "swr"
+import type { Volunteer, Mission } from "@/lib/types"
 
 export interface PendingChanges {
   missionAssignments: Record<string, string[]>
@@ -48,6 +50,8 @@ export interface DismissedAlert {
 }
 
 interface AppContextValue {
+  volunteers: Volunteer[]
+  missions: Mission[]
   pendingChanges: PendingChanges
   pendingCount: number
   queueMissionAssignment: (missionId: string, volunteerIds: string[]) => void
@@ -75,15 +79,40 @@ interface AppContextValue {
   dismissAlert: (id: string) => void
 }
 
-const AppContext = createContext<AppContextValue | null>(null)
+export const AppContext = createContext<AppContextValue | null>(null)
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const [volunteers, setVolunteers] = useState<Volunteer[]>([])
+  const [missions, setMissions] = useState<Mission[]>([])
   const [pendingChanges, setPendingChanges] = useState<PendingChanges>(
     emptyChanges(),
   )
   const [isDeploying, setIsDeploying] = useState(false)
   const [deployStep, setDeployStep] = useState(0)
   const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([])
+
+  // Load initial data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [volRes, msnRes] = await Promise.all([
+          fetch('/api/volunteers'),
+          fetch('/api/missions'),
+        ])
+        if (volRes.ok) {
+          const volData = await volRes.json()
+          setVolunteers(volData.data || [])
+        }
+        if (msnRes.ok) {
+          const msnData = await msnRes.json()
+          setMissions(msnData.data || [])
+        }
+      } catch (error) {
+        console.error('[v0] Failed to load initial data:', error)
+      }
+    }
+    loadData()
+  }, [])
 
   const pendingCount = useMemo(() => {
     return (
@@ -202,6 +231,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value: AppContextValue = {
+    volunteers,
+    missions,
     pendingChanges,
     pendingCount,
     queueMissionAssignment,
