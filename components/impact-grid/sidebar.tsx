@@ -9,7 +9,7 @@ import {
   FileText,
   Truck,
   Users,
-  Settings,
+  Download,
   Menu,
   X,
   BarChart3,
@@ -22,7 +22,7 @@ const navItems = [
   { href: "/logistics", label: "LOGISTICS", icon: Truck },
   { href: "/personnel", label: "PERSONNEL", icon: Users },
   { href: "/analytics", label: "ANALYTICS", icon: BarChart3 },
-  { href: "/system", label: "SYSTEM", icon: Settings },
+  { href: "/reports", label: "REPORTS", icon: Download },
 ]
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
