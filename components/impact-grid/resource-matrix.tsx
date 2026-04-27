@@ -1,5 +1,8 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
-import { Fuel, Cross, Users, Lock } from "lucide-react"
+import { Fuel, Cross, Users, Clock } from "lucide-react"
 
 interface ResourceItem {
   id: string
@@ -18,16 +21,55 @@ const defaultResources: ResourceItem[] = [
   { id: "3", label: "PERSONNEL_DEPLOYMENT", value: 91.8, icon: "personnel" },
 ]
 
+interface DeploymentInfo {
+  timestamp: string
+  summary: string
+}
+
 interface ResourceMatrixProps {
   resources?: ResourceItem[]
   className?: string
 }
 
 export function ResourceMatrix({ resources = defaultResources, className }: ResourceMatrixProps) {
+  const [lastDeploy, setLastDeploy] = useState<DeploymentInfo | null>(null)
+
+  // Load last deployment from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("impactgrid_last_deploy")
+    if (stored) {
+      try {
+        setLastDeploy(JSON.parse(stored))
+      } catch {
+        // Invalid JSON
+      }
+    } else {
+      // Set a default last deploy for demo
+      setLastDeploy({
+        timestamp: new Date().toISOString(),
+        summary: "Initial system deployment"
+      })
+    }
+  }, [])
+
   const icons = {
     fuel: Fuel,
     medical: Cross,
     personnel: Users,
+  }
+
+  const formatTimestamp = (ts: string) => {
+    try {
+      const date = new Date(ts)
+      return date.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    } catch {
+      return "Recently"
+    }
   }
 
   return (
@@ -86,23 +128,26 @@ export function ResourceMatrix({ resources = defaultResources, className }: Reso
         })}
       </div>
 
-      {/* Encryption Status */}
+      {/* Last Deploy Card */}
       <div className="p-3 border-t border-border">
         <div className="flex items-center gap-2 mb-2">
-          <Lock className="w-4 h-4 text-muted-foreground" />
-          <span className="font-mono text-xs font-semibold">ENCRYPTION_STATUS</span>
+          <Clock className="w-4 h-4 text-[var(--tactical-orange)]" />
+          <span className="font-mono text-xs font-semibold">LAST_DEPLOY</span>
         </div>
-        <p className="font-mono text-[10px] text-muted-foreground">
-          RSA-4096 // AES-GCM // <span className="text-[var(--tactical-green)]">ACTIVE</span>
-        </p>
-        <div className="flex justify-between mt-2 font-mono text-[10px] text-muted-foreground">
-          <span>UPLINK_BANDWIDTH:</span>
-          <span className="text-foreground">9.4 GB/S</span>
-        </div>
-        <div className="flex justify-between font-mono text-[10px] text-muted-foreground">
-          <span>SESSION_KEY:</span>
-          <span className="text-foreground">B4_A9_C2_7F...</span>
-        </div>
+        {lastDeploy ? (
+          <>
+            <p className="font-mono text-[10px] text-muted-foreground">
+              {formatTimestamp(lastDeploy.timestamp)}
+            </p>
+            <p className="font-mono text-[10px] text-foreground mt-1 line-clamp-2">
+              {lastDeploy.summary}
+            </p>
+          </>
+        ) : (
+          <p className="font-mono text-[10px] text-muted-foreground">
+            No deployments recorded
+          </p>
+        )}
       </div>
     </div>
   )

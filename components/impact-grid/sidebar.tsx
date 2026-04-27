@@ -44,10 +44,6 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <span className="text-foreground">GRID</span>
           </span>
         </div>
-        <p className="text-[10px] font-mono text-muted-foreground mt-1 tracking-wider">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--tactical-green)] mr-1.5 animate-pulse" />
-          OPS_CENTER_01
-        </p>
       </div>
 
       {/* Navigation */}
@@ -79,20 +75,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <DeployResponseBar variant="inline" />
       </div>
 
-      {/* Agent Info */}
+      {/* Version Info */}
       <div className="p-4 border-t border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-sm bg-muted flex items-center justify-center relative">
-            <Users className="w-4 h-4 text-muted-foreground" />
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[var(--tactical-green)] border-2 border-sidebar" />
-          </div>
-          <div>
-            <p className="text-xs font-mono font-semibold">OPERATOR_08</p>
-            <p className="text-[10px] font-mono text-muted-foreground">
-              <span className="text-[var(--tactical-green)]">LVL4</span> CLEARANCE
-            </p>
-          </div>
-        </div>
+        <p className="text-[10px] font-mono text-muted-foreground text-center">
+          v1.0.0
+        </p>
       </div>
     </div>
   )

@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react"
 import { mutate } from "swr"
-import { createClient } from "@/lib/supabase/client"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
 import type { Volunteer, Mission } from "@/lib/types"
 
 export interface PendingChanges {
@@ -111,10 +111,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Load initial data from Supabase with realtime subscriptions
   useEffect(() => {
     const supabase = createClient()
-    let volunteersSubscription: ReturnType<typeof supabase.channel> | null = null
-    let missionsSubscription: ReturnType<typeof supabase.channel> | null = null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let volunteersSubscription: any = null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let missionsSubscription: any = null
 
     const loadData = async () => {
+      // If Supabase is not configured, skip to API fallback
+      if (!isSupabaseConfigured() || !supabase) {
+        console.log('[v0] Supabase not configured, falling back to API endpoints')
+        try {
+          const [volRes, msnRes] = await Promise.all([
+            fetch('/api/volunteers'),
+            fetch('/api/missions'),
+          ])
+          if (volRes.ok) {
+            const volData = await volRes.json()
+            setVolunteers(volData.data || [])
+          }
+          if (msnRes.ok) {
+            const msnData = await msnRes.json()
+            setMissions(msnData.data || [])
+          }
+        } catch (error) {
+          console.error('[v0] Failed to load initial data from API:', error)
+        }
+        return
+      }
+
       try {
         // Try Supabase first
         const [volResult, msnResult] = await Promise.all([
@@ -225,10 +249,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadData()
 
     return () => {
-      if (volunteersSubscription) {
+      if (volunteersSubscription && supabase) {
         supabase.removeChannel(volunteersSubscription)
       }
-      if (missionsSubscription) {
+      if (missionsSubscription && supabase) {
         supabase.removeChannel(missionsSubscription)
       }
     }
@@ -311,7 +335,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       
       // Apply mission assignments to Supabase
       for (const [missionId, volunteerIds] of Object.entries(pendingChanges.missionAssignments)) {
-        if (isSupabaseConnected) {
+        if (isSupabaseConnected && supabase) {
           await supabase
             .from('missions')
             .update({ assigned_volunteers: volunteerIds, updated_at: new Date().toISOString() })
@@ -331,7 +355,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Step 2: Apply mission status updates
       setDeployStep(2)
       for (const [missionId, status] of Object.entries(pendingChanges.missionStatusUpdates)) {
-        if (isSupabaseConnected) {
+        if (isSupabaseConnected && supabase) {
           await supabase
             .from('missions')
             .update({ status, updated_at: new Date().toISOString() })
@@ -343,7 +367,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Step 3: Apply volunteer updates
       setDeployStep(3)
       for (const [volunteerId, updates] of Object.entries(pendingChanges.volunteerUpdates)) {
-        if (isSupabaseConnected) {
+        if (isSupabaseConnected && supabase) {
           await supabase
             .from('volunteers')
             .update({ ...updates, updated_at: new Date().toISOString() })

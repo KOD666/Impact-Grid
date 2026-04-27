@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { Settings2 } from "lucide-react"
+import { Settings2, AlertCircle } from "lucide-react"
 
 interface IntelEntry {
   id: string
@@ -44,9 +44,16 @@ const defaultEntries: IntelEntry[] = [
 interface LiveIntelStreamProps {
   entries?: IntelEntry[]
   className?: string
+  searchQuery?: string
+  emptyMessage?: string
 }
 
-export function LiveIntelStream({ entries = defaultEntries, className }: LiveIntelStreamProps) {
+export function LiveIntelStream({ 
+  entries = defaultEntries, 
+  className,
+  searchQuery,
+  emptyMessage 
+}: LiveIntelStreamProps) {
   const statusColors: Record<string, string> = {
     RECEIVED: "bg-[var(--tactical-green)]/20 text-[var(--tactical-green)] border-[var(--tactical-green)]/30",
     received: "bg-[var(--tactical-green)]/20 text-[var(--tactical-green)] border-[var(--tactical-green)]/30",
@@ -64,6 +71,8 @@ export function LiveIntelStream({ entries = defaultEntries, className }: LiveInt
     ALERT: "text-[var(--tactical-red)]",
   }
 
+  const isEmpty = !entries || entries.length === 0
+
   return (
     <div className={cn("border border-border rounded-sm bg-card", className)}>
       {/* Header */}
@@ -71,6 +80,11 @@ export function LiveIntelStream({ entries = defaultEntries, className }: LiveInt
         <p className="font-mono text-xs flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--tactical-green)] animate-pulse" />
           LIVE_INTEL_STREAM
+          {searchQuery && (
+            <span className="ml-2 px-2 py-0.5 bg-[var(--tactical-orange)]/20 text-[var(--tactical-orange)] text-[10px] rounded">
+              Filtered: {entries?.length || 0} results
+            </span>
+          )}
         </p>
         <div className="flex items-center gap-3">
           <span className="px-2 py-0.5 bg-[var(--tactical-green)]/20 border border-[var(--tactical-green)]/30 rounded-sm font-mono text-[10px] text-[var(--tactical-green)]">
@@ -82,57 +96,71 @@ export function LiveIntelStream({ entries = defaultEntries, className }: LiveInt
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="px-4 py-2 text-left font-mono text-[10px] text-muted-foreground font-normal tracking-wider">
-                TIME_STAMP
-              </th>
-              <th className="px-4 py-2 text-left font-mono text-[10px] text-muted-foreground font-normal tracking-wider">
-                SOURCE
-              </th>
-              <th className="px-4 py-2 text-left font-mono text-[10px] text-muted-foreground font-normal tracking-wider">
-                PAYLOAD
-              </th>
-              <th className="px-4 py-2 text-left font-mono text-[10px] text-muted-foreground font-normal tracking-wider">
-                STATUS
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry) => (
-              <tr key={entry.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                  {entry.timestamp}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="font-mono text-xs text-[var(--tactical-orange)]">
-                    + {entry.source}
-                  </span>
-                </td>
-                <td className="px-4 py-3 font-mono text-xs max-w-md">
-                  <span className={cn("mr-2", payloadTypeColors[entry.payloadType || entry.payload_type || "INFO"])}>
-                    [{entry.payloadType || entry.payload_type || "INFO"}]
-                  </span>
-                  <span className="text-foreground">{entry.payload || entry.message}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 border rounded-sm font-mono text-[10px]",
-                      statusColors[entry.status] || statusColors["logged"]
-                    )}
-                  >
-                    {entry.status.toUpperCase()}
-                  </span>
-                </td>
+      {/* Table or Empty State */}
+      {isEmpty ? (
+        <div className="p-8 flex flex-col items-center justify-center text-center">
+          <AlertCircle className="w-8 h-8 text-muted-foreground mb-3" />
+          <p className="font-mono text-sm text-muted-foreground">
+            {emptyMessage || "No intel entries"}
+          </p>
+          {searchQuery && (
+            <p className="font-mono text-xs text-muted-foreground mt-2">
+              Try adjusting your search query
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="px-4 py-2 text-left font-mono text-[10px] text-muted-foreground font-normal tracking-wider">
+                  TIME_STAMP
+                </th>
+                <th className="px-4 py-2 text-left font-mono text-[10px] text-muted-foreground font-normal tracking-wider">
+                  SOURCE
+                </th>
+                <th className="px-4 py-2 text-left font-mono text-[10px] text-muted-foreground font-normal tracking-wider">
+                  PAYLOAD
+                </th>
+                <th className="px-4 py-2 text-left font-mono text-[10px] text-muted-foreground font-normal tracking-wider">
+                  STATUS
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {entries.map((entry) => (
+                <tr key={entry.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                    {entry.timestamp}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="font-mono text-xs text-[var(--tactical-orange)]">
+                      + {entry.source}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-mono text-xs max-w-md">
+                    <span className={cn("mr-2", payloadTypeColors[entry.payloadType || entry.payload_type || "INFO"])}>
+                      [{entry.payloadType || entry.payload_type || "INFO"}]
+                    </span>
+                    <span className="text-foreground">{entry.payload || entry.message}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 border rounded-sm font-mono text-[10px]",
+                        statusColors[entry.status] || statusColors["logged"]
+                      )}
+                    >
+                      {entry.status.toUpperCase()}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

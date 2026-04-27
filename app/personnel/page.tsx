@@ -6,10 +6,12 @@ import { Sidebar } from '@/components/impact-grid/sidebar'
 import { TopNav } from '@/components/impact-grid/top-nav'
 import { DeployResponseBar } from '@/components/impact-grid/deploy-response-bar'
 import { VolunteerCard } from '@/components/impact-grid/volunteer-card'
+import { PersonnelFilterBar } from '@/components/impact-grid/personnel-filter-bar'
 import { removeVolunteer } from '@/hooks/use-dashboard'
+import type { Volunteer } from '@/lib/types'
 
 export default function PersonnelPage() {
-  const { volunteers } = useContext(AppContext)
+  const { volunteers } = useContext(AppContext)!
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -20,6 +22,7 @@ export default function PersonnelPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [removingId, setRemovingId] = useState<string | null>(null)
+  const [filteredVolunteers, setFilteredVolunteers] = useState<Volunteer[]>([])
 
   const handleAddVolunteer = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
@@ -68,6 +71,10 @@ export default function PersonnelPage() {
     } catch (error) {
       console.error('[v0] Remove volunteer failed:', error)
     }
+  }, [])
+
+  const handleFiltered = useCallback((filtered: Volunteer[]) => {
+    setFilteredVolunteers(filtered)
   }, [])
 
   const isEmpty = !volunteers || volunteers.length === 0
@@ -177,6 +184,14 @@ export default function PersonnelPage() {
         </div>
       )}
 
+      {/* Filter Bar */}
+      {!isEmpty && (
+        <PersonnelFilterBar
+          volunteers={volunteers}
+          onFiltered={handleFiltered}
+        />
+      )}
+
       {/* Main Content */}
       <div className="px-4 py-6 md:px-6 md:py-8 pb-24">
         <div className="max-w-7xl mx-auto">
@@ -190,9 +205,13 @@ export default function PersonnelPage() {
                 ADD_FIRST_VOLUNTEER
               </button>
             </div>
+          ) : filteredVolunteers.length === 0 ? (
+            <div className="text-center py-12 border border-border rounded-sm bg-card">
+              <p className="text-muted-foreground text-sm font-mono">No volunteers match your filters</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {volunteers.map((volunteer) => (
+              {filteredVolunteers.map((volunteer) => (
                 <div key={volunteer.id} className="relative">
                   {removingId === volunteer.id && (
                     <div className="absolute inset-0 bg-black/50 rounded-sm z-10 flex items-center justify-center">
@@ -217,7 +236,7 @@ export default function PersonnelPage() {
                   )}
                   <VolunteerCard
                     volunteer={volunteer}
-                    onRemove={() => setRemovingId(volunteer.id)}
+                    onChanged={() => setRemovingId(volunteer.id)}
                   />
                 </div>
               ))}
