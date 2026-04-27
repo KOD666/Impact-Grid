@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react"
 import { mutate } from "swr"
+import { createClient } from "@/lib/supabase/client"
 import type { Volunteer, Mission } from "@/lib/types"
 
 export interface PendingChanges {
@@ -77,9 +78,24 @@ interface AppContextValue {
   deployStep: number
   dismissedAlertIds: string[]
   dismissAlert: (id: string) => void
+  isSupabaseConnected: boolean
 }
 
 export const AppContext = createContext<AppContextValue | null>(null)
+
+// Type guard for volunteer data from Supabase
+function isValidVolunteer(v: unknown): v is Volunteer {
+  if (!v || typeof v !== 'object') return false
+  const obj = v as Record<string, unknown>
+  return typeof obj.id === 'string' && typeof obj.name === 'string'
+}
+
+// Type guard for mission data from Supabase
+function isValidMission(m: unknown): m is Mission {
+  if (!m || typeof m !== 'object') return false
+  const obj = m as Record<string, unknown>
+  return typeof obj.id === 'string' && typeof obj.name === 'string'
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [volunteers, setVolunteers] = useState<Volunteer[]>([])
@@ -90,10 +106,104 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isDeploying, setIsDeploying] = useState(false)
   const [deployStep, setDeployStep] = useState(0)
   const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([])
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState(false)
 
-  // Load initial data
+  // Load initial data from Supabase with realtime subscriptions
   useEffect(() => {
+    const supabase = createClient()
+    let volunteersSubscription: ReturnType<typeof supabase.channel> | null = null
+    let missionsSubscription: ReturnType<typeof supabase.channel> | null = null
+
     const loadData = async () => {
+      try {
+        // Try Supabase first
+        const [volResult, msnResult] = await Promise.all([
+          supabase.from('volunteers').select('*'),
+          supabase.from('missions').select('*'),
+        ])
+
+        if (!volResult.error && !msnResult.error) {
+          setIsSupabaseConnected(true)
+          
+          // Transform Supabase data to match app types
+          const volData = (volResult.data || []).filter(isValidVolunteer).map((v) => ({
+            ...v,
+            skills: v.skills || [],
+            mission_history: [],
+          }))
+          
+          const msnData = (msnResult.data || []).filter(isValidMission).map((m) => ({
+            ...m,
+            assigned_volunteers: m.assigned_volunteers || [],
+            source_reports: m.source_reports || [],
+            objectives: m.objectives || [],
+            resources_needed: m.resources_needed || [],
+          }))
+
+          setVolunteers(volData)
+          setMissions(msnData)
+
+          // Set up realtime subscriptions
+          volunteersSubscription = supabase
+            .channel('volunteers-changes')
+            .on(
+              'postgres_changes',
+              { event: '*', schema: 'public', table: 'volunteers' },
+              (payload) => {
+                console.log('[v0] Volunteers realtime update:', payload.eventType)
+                if (payload.eventType === 'INSERT' && isValidVolunteer(payload.new)) {
+                  setVolunteers((prev) => [...prev, { ...payload.new, skills: payload.new.skills || [], mission_history: [] }])
+                } else if (payload.eventType === 'UPDATE' && isValidVolunteer(payload.new)) {
+                  setVolunteers((prev) =>
+                    prev.map((v) => (v.id === payload.new.id ? { ...v, ...payload.new } : v))
+                  )
+                } else if (payload.eventType === 'DELETE') {
+                  const oldRecord = payload.old as { id?: string }
+                  if (oldRecord?.id) {
+                    setVolunteers((prev) => prev.filter((v) => v.id !== oldRecord.id))
+                  }
+                }
+              }
+            )
+            .subscribe()
+
+          missionsSubscription = supabase
+            .channel('missions-changes')
+            .on(
+              'postgres_changes',
+              { event: '*', schema: 'public', table: 'missions' },
+              (payload) => {
+                console.log('[v0] Missions realtime update:', payload.eventType)
+                if (payload.eventType === 'INSERT' && isValidMission(payload.new)) {
+                  setMissions((prev) => [...prev, { 
+                    ...payload.new, 
+                    assigned_volunteers: payload.new.assigned_volunteers || [],
+                    source_reports: payload.new.source_reports || [],
+                    objectives: payload.new.objectives || [],
+                    resources_needed: payload.new.resources_needed || [],
+                  }])
+                } else if (payload.eventType === 'UPDATE' && isValidMission(payload.new)) {
+                  setMissions((prev) =>
+                    prev.map((m) => (m.id === payload.new.id ? { ...m, ...payload.new } : m))
+                  )
+                } else if (payload.eventType === 'DELETE') {
+                  const oldRecord = payload.old as { id?: string }
+                  if (oldRecord?.id) {
+                    setMissions((prev) => prev.filter((m) => m.id !== oldRecord.id))
+                  }
+                }
+              }
+            )
+            .subscribe()
+
+          return // Success with Supabase
+        }
+      } catch (error) {
+        console.error('[v0] Supabase connection error:', error)
+      }
+
+      // Fallback to API if Supabase fails
+      console.log('[v0] Falling back to API endpoints')
       try {
         const [volRes, msnRes] = await Promise.all([
           fetch('/api/volunteers'),
@@ -111,7 +221,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.error('[v0] Failed to load initial data:', error)
       }
     }
+
     loadData()
+
+    return () => {
+      if (volunteersSubscription) {
+        supabase.removeChannel(volunteersSubscription)
+      }
+      if (missionsSubscription) {
+        supabase.removeChannel(missionsSubscription)
+      }
+    }
   }, [])
 
   const pendingCount = useMemo(() => {
@@ -184,19 +304,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setIsDeploying(true)
     setDeployStep(0)
     try {
+      const supabase = createClient()
+
       // Step 1: Updating missions
       setDeployStep(1)
-      await new Promise((r) => setTimeout(r, 350))
+      
+      // Apply mission assignments to Supabase
+      for (const [missionId, volunteerIds] of Object.entries(pendingChanges.missionAssignments)) {
+        if (isSupabaseConnected) {
+          await supabase
+            .from('missions')
+            .update({ assigned_volunteers: volunteerIds, updated_at: new Date().toISOString() })
+            .eq('id', missionId)
+          
+          // Update volunteers' current_mission
+          for (const volId of volunteerIds) {
+            await supabase
+              .from('volunteers')
+              .update({ current_mission: missionId, availability: 'busy', updated_at: new Date().toISOString() })
+              .eq('id', volId)
+          }
+        }
+      }
+      await new Promise((r) => setTimeout(r, 250))
 
-      // Step 2: Notifying volunteers
+      // Step 2: Apply mission status updates
       setDeployStep(2)
-      await new Promise((r) => setTimeout(r, 350))
+      for (const [missionId, status] of Object.entries(pendingChanges.missionStatusUpdates)) {
+        if (isSupabaseConnected) {
+          await supabase
+            .from('missions')
+            .update({ status, updated_at: new Date().toISOString() })
+            .eq('id', missionId)
+        }
+      }
+      await new Promise((r) => setTimeout(r, 250))
 
-      // Step 3: Recalculating routes
+      // Step 3: Apply volunteer updates
       setDeployStep(3)
-      await new Promise((r) => setTimeout(r, 350))
+      for (const [volunteerId, updates] of Object.entries(pendingChanges.volunteerUpdates)) {
+        if (isSupabaseConnected) {
+          await supabase
+            .from('volunteers')
+            .update({ ...updates, updated_at: new Date().toISOString() })
+            .eq('id', volunteerId)
+        }
+      }
+      await new Promise((r) => setTimeout(r, 250))
 
-      // Send batch
+      // Also send to API for backward compatibility
       const res = await fetch("/api/deploy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -224,7 +380,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setIsDeploying(false)
       setTimeout(() => setDeployStep(0), 600)
     }
-  }, [pendingChanges, resetChanges])
+  }, [pendingChanges, resetChanges, isSupabaseConnected])
 
   const dismissAlert = useCallback((id: string) => {
     setDismissedAlertIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
@@ -245,6 +401,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deployStep,
     dismissedAlertIds,
     dismissAlert,
+    isSupabaseConnected,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
