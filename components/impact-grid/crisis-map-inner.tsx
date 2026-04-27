@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   MapContainer,
   TileLayer,
@@ -12,6 +12,7 @@ import {
 } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
+import type { ExternalMarker } from "@/hooks/use-dashboard"
 
 export interface CrisisMarker {
   id: string
@@ -38,6 +39,7 @@ export interface TeamMarker {
 interface CrisisMapInnerProps {
   markers: CrisisMarker[]
   teams?: TeamMarker[]
+  externalMarkers?: ExternalMarker[]
   showRoutes?: boolean
   center?: [number, number]
   zoom?: number
@@ -95,9 +97,72 @@ function FocusController({
   return null
 }
 
+// Layer toggle button component
+function LayerLegend({
+  layers,
+  onToggle,
+}: {
+  layers: { id: string; label: string; color: string; enabled: boolean; count: number }[]
+  onToggle: (id: string) => void
+}) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 10,
+        right: 10,
+        zIndex: 1000,
+        background: "rgba(13, 17, 23, 0.95)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 4,
+        padding: "8px 10px",
+        fontFamily: "monospace",
+        fontSize: 11,
+      }}
+    >
+      <div style={{ fontWeight: 700, marginBottom: 6, opacity: 0.8, fontSize: 10 }}>
+        DATA LAYERS
+      </div>
+      {layers.map((layer) => (
+        <label
+          key={layer.id}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            cursor: "pointer",
+            marginBottom: 4,
+            opacity: layer.enabled ? 1 : 0.5,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={layer.enabled}
+            onChange={() => onToggle(layer.id)}
+            style={{ accentColor: layer.color }}
+          />
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              background: layer.color,
+              display: "inline-block",
+            }}
+          />
+          <span>
+            {layer.label} ({layer.count})
+          </span>
+        </label>
+      ))}
+    </div>
+  )
+}
+
 export default function CrisisMapInner({
   markers,
   teams = [],
+  externalMarkers = [],
   showRoutes = false,
   center,
   zoom = 12,
@@ -108,15 +173,54 @@ export default function CrisisMapInner({
 }: CrisisMapInnerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
 
+  // Layer visibility state
+  const [layerVisibility, setLayerVisibility] = useState({
+    internal: true,
+    usgs: true,
+    gdacs: true,
+  })
+
+  const usgsMarkers = externalMarkers.filter((m) => m.source === "usgs")
+  const gdacsMarkers = externalMarkers.filter((m) => m.source === "gdacs")
+
+  const layers = [
+    {
+      id: "internal",
+      label: "INCIDENTS",
+      color: "#22c55e",
+      enabled: layerVisibility.internal,
+      count: markers.length,
+    },
+    {
+      id: "usgs",
+      label: "USGS",
+      color: "#f97316",
+      enabled: layerVisibility.usgs,
+      count: usgsMarkers.length,
+    },
+    {
+      id: "gdacs",
+      label: "GDACS",
+      color: "#ef4444",
+      enabled: layerVisibility.gdacs,
+      count: gdacsMarkers.length,
+    },
+  ]
+
+  const handleToggle = (id: string) => {
+    setLayerVisibility((prev) => ({ ...prev, [id]: !prev[id as keyof typeof prev] }))
+  }
+
   const computedCenter = useMemo<[number, number]>(() => {
     if (center) return center
     if (markers.length > 0) return [markers[0].lat, markers[0].lng]
+    if (externalMarkers.length > 0) return [externalMarkers[0].lat, externalMarkers[0].lng]
     if (teams.length > 0) return [teams[0].lat, teams[0].lng]
     return [34.0522, -118.2437]
-  }, [center, markers, teams])
+  }, [center, markers, externalMarkers, teams])
 
   return (
-    <div ref={containerRef} style={{ height, width: "100%" }}>
+    <div ref={containerRef} style={{ height, width: "100%", position: "relative" }}>
       <MapContainer
         center={computedCenter}
         zoom={zoom}
@@ -130,67 +234,178 @@ export default function CrisisMapInner({
 
         <FocusController markers={markers} focusId={focusId} />
 
-        {markers.map((m) => {
-          const color = urgencyColor(m.urgency)
-          return (
+        {/* Internal incident markers */}
+        {layerVisibility.internal &&
+          markers.map((m) => {
+            const color = urgencyColor(m.urgency)
+            return (
+              <CircleMarker
+                key={m.id}
+                center={[m.lat, m.lng]}
+                radius={10}
+                pathOptions={{
+                  color,
+                  weight: 2,
+                  fillColor: color,
+                  fillOpacity: 0.55,
+                }}
+                eventHandlers={{
+                  click: () => onMarkerClick?.(m),
+                }}
+              >
+                <Popup>
+                  <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 180 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 4 }}>{m.label}</div>
+                    {m.category && (
+                      <div>
+                        <span style={{ opacity: 0.7 }}>Category:</span>{" "}
+                        {m.category.toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <span style={{ opacity: 0.7 }}>Urgency:</span>{" "}
+                      <span style={{ color, fontWeight: 700 }}>{m.urgency}</span>
+                    </div>
+                    {typeof m.people_affected === "number" && (
+                      <div>
+                        <span style={{ opacity: 0.7 }}>People affected:</span>{" "}
+                        {m.people_affected}
+                      </div>
+                    )}
+                    {m.missionId && onViewMission && (
+                      <button
+                        onClick={() => onViewMission(m.missionId!)}
+                        style={{
+                          marginTop: 8,
+                          padding: "4px 10px",
+                          background: "#ea580c",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 3,
+                          cursor: "pointer",
+                          fontFamily: "monospace",
+                          fontSize: 11,
+                          fontWeight: 700,
+                        }}
+                      >
+                        VIEW MISSION
+                      </button>
+                    )}
+                  </div>
+                </Popup>
+              </CircleMarker>
+            )
+          })}
+
+        {/* USGS earthquake markers */}
+        {layerVisibility.usgs &&
+          usgsMarkers.map((m) => (
             <CircleMarker
               key={m.id}
               center={[m.lat, m.lng]}
-              radius={10}
+              radius={8}
               pathOptions={{
-                color,
+                color: m.markerColor,
                 weight: 2,
-                fillColor: color,
-                fillOpacity: 0.55,
-              }}
-              eventHandlers={{
-                click: () => onMarkerClick?.(m),
+                fillColor: m.markerColor,
+                fillOpacity: 0.6,
               }}
             >
               <Popup>
                 <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 180 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 4 }}>{m.label}</div>
-                  {m.category && (
-                    <div>
-                      <span style={{ opacity: 0.7 }}>Category:</span>{" "}
-                      {m.category.toUpperCase()}
-                    </div>
-                  )}
-                  <div>
-                    <span style={{ opacity: 0.7 }}>Urgency:</span>{" "}
-                    <span style={{ color, fontWeight: 700 }}>{m.urgency}</span>
-                  </div>
-                  {typeof m.people_affected === "number" && (
-                    <div>
-                      <span style={{ opacity: 0.7 }}>People affected:</span>{" "}
-                      {m.people_affected}
-                    </div>
-                  )}
-                  {m.missionId && onViewMission && (
-                    <button
-                      onClick={() => onViewMission(m.missionId!)}
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      marginBottom: 4,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span
                       style={{
-                        marginTop: 8,
-                        padding: "4px 10px",
-                        background: "#ea580c",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 3,
-                        cursor: "pointer",
-                        fontFamily: "monospace",
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: m.markerColor,
+                      }}
+                    />
+                    USGS
+                  </div>
+                  <div style={{ marginBottom: 4 }}>{m.title}</div>
+                  {m.detail && (
+                    <div style={{ fontWeight: 700, color: m.markerColor }}>{m.detail}</div>
+                  )}
+                  {m.url && (
+                    <a
+                      href={m.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: "inline-block",
+                        marginTop: 6,
+                        color: "#3b82f6",
                         fontSize: 11,
-                        fontWeight: 700,
                       }}
                     >
-                      VIEW MISSION
-                    </button>
+                      View on USGS
+                    </a>
                   )}
                 </div>
               </Popup>
             </CircleMarker>
-          )
-        })}
+          ))}
 
+        {/* GDACS disaster markers */}
+        {layerVisibility.gdacs &&
+          gdacsMarkers.map((m) => (
+            <CircleMarker
+              key={m.id}
+              center={[m.lat, m.lng]}
+              radius={9}
+              pathOptions={{
+                color: m.markerColor,
+                weight: 2,
+                fillColor: m.markerColor,
+                fillOpacity: 0.55,
+              }}
+            >
+              <Popup>
+                <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 180 }}>
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      marginBottom: 4,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: m.markerColor,
+                      }}
+                    />
+                    GDACS
+                  </div>
+                  <div style={{ marginBottom: 4 }}>{m.title}</div>
+                  {m.detail && (
+                    <div style={{ fontWeight: 700, color: m.markerColor }}>{m.detail}</div>
+                  )}
+                  {m.timestamp && (
+                    <div style={{ opacity: 0.7, fontSize: 10, marginTop: 4 }}>
+                      {new Date(m.timestamp).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
+
+        {/* Team markers */}
         {teams.map((t) => (
           <Marker key={t.id} position={[t.lat, t.lng]} icon={personIcon}>
             <Popup>
@@ -206,6 +421,7 @@ export default function CrisisMapInner({
           </Marker>
         ))}
 
+        {/* Route lines */}
         {showRoutes &&
           teams.map((t) =>
             t.destinationLat !== undefined && t.destinationLng !== undefined ? (
@@ -225,6 +441,9 @@ export default function CrisisMapInner({
             ) : null,
           )}
       </MapContainer>
+
+      {/* Layer legend overlay */}
+      <LayerLegend layers={layers} onToggle={handleToggle} />
     </div>
   )
 }

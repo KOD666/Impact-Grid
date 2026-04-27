@@ -3,6 +3,8 @@
 import dynamic from "next/dynamic"
 import { cn } from "@/lib/utils"
 import type { CrisisMarker, TeamMarker } from "./crisis-map-inner"
+import type { ExternalMarker } from "@/hooks/use-dashboard"
+import { useUsgsEarthquakes, useGdacsDisasters } from "@/hooks/use-dashboard"
 
 const CrisisMapInner = dynamic(() => import("./crisis-map-inner"), {
   ssr: false,
@@ -20,6 +22,7 @@ interface CrisisMapProps {
   subtitle?: string
   markers: CrisisMarker[]
   teams?: TeamMarker[]
+  externalMarkers?: ExternalMarker[]
   showRoutes?: boolean
   center?: [number, number]
   zoom?: number
@@ -29,6 +32,7 @@ interface CrisisMapProps {
   onMarkerClick?: (marker: CrisisMarker) => void
   onViewMission?: (missionId: string) => void
   showLegend?: boolean
+  showExternalFeeds?: boolean
 }
 
 export type { CrisisMarker, TeamMarker }
@@ -38,6 +42,7 @@ export function CrisisMap({
   subtitle,
   markers,
   teams,
+  externalMarkers: externalMarkersProp,
   showRoutes,
   center,
   zoom,
@@ -46,8 +51,21 @@ export function CrisisMap({
   className,
   onMarkerClick,
   onViewMission,
-  showLegend = true,
+  showLegend = false,
+  showExternalFeeds = true,
 }: CrisisMapProps) {
+  // Fetch external data feeds
+  const { markers: usgsMarkers } = useUsgsEarthquakes()
+  const { markers: gdacsMarkers } = useGdacsDisasters()
+
+  // Combine external markers
+  const externalMarkers = externalMarkersProp ?? [
+    ...(showExternalFeeds ? usgsMarkers : []),
+    ...(showExternalFeeds ? gdacsMarkers : []),
+  ]
+
+  const totalExternalCount = usgsMarkers.length + gdacsMarkers.length
+
   return (
     <div
       className={cn(
@@ -60,17 +78,25 @@ export function CrisisMap({
           <span className="w-1.5 h-1.5 bg-[var(--tactical-orange)]" />
           {title}
         </p>
-        {subtitle && (
-          <span className="font-mono text-[10px] text-muted-foreground">
-            {subtitle}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {showExternalFeeds && totalExternalCount > 0 && (
+            <span className="font-mono text-[10px] text-muted-foreground">
+              +{totalExternalCount} EXT_FEEDS
+            </span>
+          )}
+          {subtitle && (
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {subtitle}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="relative" style={{ height }}>
         <CrisisMapInner
           markers={markers}
           teams={teams}
+          externalMarkers={externalMarkers}
           showRoutes={showRoutes}
           center={center}
           zoom={zoom}
@@ -81,7 +107,7 @@ export function CrisisMap({
         />
 
         {showLegend && (
-          <div className="absolute top-3 right-3 z-[400] p-2.5 bg-background/90 border border-border rounded-sm pointer-events-none">
+          <div className="absolute top-3 left-3 z-[400] p-2.5 bg-background/90 border border-border rounded-sm pointer-events-none">
             <p className="font-mono text-[10px] text-muted-foreground mb-1.5">
               MAP_LEGEND
             </p>
