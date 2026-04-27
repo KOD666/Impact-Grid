@@ -11,6 +11,9 @@ interface TaskOrderProps {
   equipment: string
   status: "SYS_AUTH_OK" | "LOG_PENDING" | "SCAN_ACTIVE" | "ACTIVE"
   onDeploy?: () => void
+  onViewDetails?: () => void
+  onSelect?: () => void
+  isSelected?: boolean
   isDeploying?: boolean
   isActive?: boolean
 }
@@ -25,6 +28,9 @@ export function TaskOrderCard({
   equipment,
   status,
   onDeploy,
+  onViewDetails,
+  onSelect,
+  isSelected,
   isDeploying,
   isActive,
 }: TaskOrderProps) {
@@ -36,7 +42,28 @@ export function TaskOrderCard({
   }
 
   return (
-    <div className="border border-border rounded-sm bg-card overflow-hidden">
+    <div
+      onClick={onSelect}
+      role={onSelect ? "button" : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      onKeyDown={
+        onSelect
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault()
+                onSelect()
+              }
+            }
+          : undefined
+      }
+      className={cn(
+        "border rounded-sm bg-card overflow-hidden transition-all",
+        isSelected
+          ? "border-[var(--tactical-orange)] shadow-[0_0_0_1px_var(--tactical-orange)]"
+          : "border-border",
+        onSelect && "cursor-pointer hover:border-[var(--tactical-orange)]/60",
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
         <span className="font-mono text-xs text-[var(--tactical-orange)] flex items-center gap-2">
@@ -77,12 +104,22 @@ export function TaskOrderCard({
 
         {/* Actions */}
         <div className="mt-4 flex items-center gap-3">
-          <button className="flex-1 px-3 py-2 border border-border font-mono text-[10px] tracking-wider rounded-sm hover:bg-muted transition-all">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onViewDetails?.()
+            }}
+            className="flex-1 px-3 py-2 border border-border font-mono text-[10px] tracking-wider rounded-sm hover:bg-muted transition-all"
+          >
             VIEW_DETAILS
           </button>
           {!isActive && (
-            <button 
-              onClick={onDeploy}
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onDeploy?.()
+              }}
               disabled={isDeploying}
               className={cn(
                 "flex-1 px-3 py-2 bg-[var(--tactical-orange)] text-primary-foreground font-mono text-[10px] tracking-wider font-semibold rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2",
