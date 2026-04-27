@@ -2,6 +2,9 @@
 
 import { useContext, useState, useCallback } from 'react'
 import { AppContext } from '@/components/providers/app-provider'
+import { Sidebar } from '@/components/impact-grid/sidebar'
+import { TopNav } from '@/components/impact-grid/top-nav'
+import { DeployResponseBar } from '@/components/impact-grid/deploy-response-bar'
 import { VolunteerCard } from '@/components/impact-grid/volunteer-card'
 import { removeVolunteer } from '@/hooks/use-dashboard'
 
@@ -73,6 +76,11 @@ export default function PersonnelPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Sidebar />
+
+      <main className="lg:ml-56">
+        <TopNav activeTab="reports" />
+
       {/* Header */}
       <div className="border-b border-border px-4 py-4 md:px-6 md:py-6">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -170,7 +178,7 @@ export default function PersonnelPage() {
       )}
 
       {/* Main Content */}
-      <div className="px-4 py-6 md:px-6 md:py-8">
+      <div className="px-4 py-6 md:px-6 md:py-8 pb-24">
         <div className="max-w-7xl mx-auto">
           {isEmpty ? (
             <div className="text-center py-12">
@@ -217,6 +225,9 @@ export default function PersonnelPage() {
           )}
         </div>
       </div>
+      </main>
+
+      <DeployResponseBar variant="floating" />
     </div>
   )
 }

@@ -4,6 +4,8 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useVolunteer } from '@/hooks/use-dashboard'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Sidebar } from '@/components/impact-grid/sidebar'
+import { TopNav } from '@/components/impact-grid/top-nav'
 
 export default function PersonnelDetailPage() {
   const params = useParams()
@@ -13,32 +15,39 @@ export default function PersonnelDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="border-b border-border px-4 py-6 md:px-6">
-          <div className="max-w-2xl mx-auto">
-            <Skeleton className="h-8 w-64 mb-4" />
-            <Skeleton className="h-4 w-40" />
+        <Sidebar />
+        <main className="lg:ml-56">
+          <TopNav activeTab="reports" />
+          <div className="border-b border-border px-4 py-6 md:px-6">
+            <div className="max-w-2xl mx-auto">
+              <Skeleton className="h-8 w-64 mb-4" />
+              <Skeleton className="h-4 w-40" />
+            </div>
           </div>
-        </div>
-        <div className="px-4 py-6 md:px-6">
-          <div className="max-w-2xl mx-auto space-y-4">
-            <Skeleton className="h-40 w-full" />
-            <Skeleton className="h-40 w-full" />
+          <div className="px-4 py-6 md:px-6">
+            <div className="max-w-2xl mx-auto space-y-4">
+              <Skeleton className="h-40 w-full" />
+              <Skeleton className="h-40 w-full" />
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     )
   }
 
   if (isError || !volunteer) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Volunteer not found</h1>
-          <p className="text-muted-foreground mb-4">The volunteer record could not be loaded.</p>
-          <Link href="/personnel" className="text-[var(--tactical-orange)] hover:underline">
-            ← Back to Personnel Roster
-          </Link>
-        </div>
+      <div className="min-h-screen bg-background">
+        <Sidebar />
+        <main className="lg:ml-56 flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-2">Volunteer not found</h1>
+            <p className="text-muted-foreground mb-4">The volunteer record could not be loaded.</p>
+            <Link href="/personnel" className="text-[var(--tactical-orange)] hover:underline">
+              ← Back to Personnel Roster
+            </Link>
+          </div>
+        </main>
       </div>
     )
   }
@@ -66,6 +75,11 @@ export default function PersonnelDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Sidebar />
+
+      <main className="lg:ml-56">
+        <TopNav activeTab="reports" />
+
       {/* Header */}
       <div className="border-b border-border px-4 py-6 md:px-6">
         <div className="max-w-2xl mx-auto flex items-start gap-4">
@@ -198,6 +212,7 @@ export default function PersonnelDetailPage() {
           </div>
         </div>
       </div>
+      </main>
     </div>
   )
 }

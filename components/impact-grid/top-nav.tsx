@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Bell, Settings, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ReportSubmissionDialog } from "./report-submission-dialog"
@@ -11,9 +12,9 @@ interface TopNavProps {
 
 export function TopNav({ activeTab = "reports", onReportSubmitted }: TopNavProps) {
   const tabs = [
-    { id: "reports", label: "REPORTS" },
-    { id: "analytics", label: "ANALYTICS" },
-    { id: "field_logs", label: "FIELD_LOGS" },
+    { id: "reports", label: "REPORTS", href: "/reports" },
+    { id: "analytics", label: "ANALYTICS", href: "/analytics" },
+    { id: "field_logs", label: "FIELD_LOGS", href: "/missions" },
   ] as const
 
   return (
@@ -33,8 +34,9 @@ export function TopNav({ activeTab = "reports", onReportSubmitted }: TopNavProps
         {/* Tabs */}
         <div className="flex items-center gap-1 ml-4">
           {tabs.map((tab) => (
-            <button
+            <Link
               key={tab.id}
+              href={tab.href}
               className={cn(
                 "px-4 py-1.5 font-mono text-xs tracking-wider rounded-sm transition-all",
                 activeTab === tab.id
@@ -43,7 +45,7 @@ export function TopNav({ activeTab = "reports", onReportSubmitted }: TopNavProps
               )}
             >
               {tab.label}
-            </button>
+            </Link>
           ))}
         </div>
       </div>
