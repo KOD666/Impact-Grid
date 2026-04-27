@@ -60,6 +60,10 @@ export interface Volunteer {
     lat: number
     lng: number
   }
+  joined_at?: string
+  contact_email?: string
+  contact_phone?: string
+  mission_history?: string[]
 }
 
 export interface PredictiveAlert {
@@ -114,4 +118,44 @@ export interface SystemMetrics {
   uplink_bandwidth: string
   buffer_capacity: number
   encryption_status: "active" | "inactive"
+}
+
+export type LogisticsCategory =
+  | "supply_delivery"
+  | "medical_kit_transport"
+  | "shelter_setup"
+  | "food_distribution"
+  | "water_purification_drop"
+  | "communication_relay"
+
+export type LogisticsStatus = "pending" | "en_route" | "delivered"
+export type LogisticsPriority = "low" | "medium" | "high" | "critical"
+
+export interface LogisticsTask {
+  id: string
+  title: string
+  team: string
+  category: LogisticsCategory
+  status: LogisticsStatus
+  load_details: string
+  eta: string
+  priority: LogisticsPriority
+  destination: string
+  destination_coordinates?: { lat: number; lng: number }
+  team_coordinates?: { lat: number; lng: number }
+  destination_urgency: number
+  created_at: string
+  delivered_at?: string
+}
+
+export interface DeploymentLog {
+  id: string
+  timestamp: string
+  summary: string
+  changes: {
+    missions_updated: number
+    volunteers_updated: number
+    logistics_updated: number
+    alerts_generated: number
+  }
 }

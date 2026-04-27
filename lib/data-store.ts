@@ -1,7 +1,7 @@
 // In-memory data store for ImpactGrid demo
 // In production, this would be replaced with a database
 
-import type { Report, Mission, Volunteer, PredictiveAlert, IntelStreamEntry, ResourceAllocation, SystemMetrics } from "./types"
+import type { Report, Mission, Volunteer, PredictiveAlert, IntelStreamEntry, ResourceAllocation, SystemMetrics, LogisticsTask, DeploymentLog } from "./types"
 
 // Initial seed data
 const initialReports: Report[] = [
@@ -116,7 +116,11 @@ const initialVolunteers: Volunteer[] = [
     availability: "available",
     clearance_level: 4,
     missions_completed: 42,
-    coordinates: { lat: 34.0500, lng: -118.2400 }
+    coordinates: { lat: 34.0500, lng: -118.2400 },
+    joined_at: "2024-01-03",
+    contact_email: "e.vance@impactgrid.ops",
+    contact_phone: "+1-555-0142",
+    mission_history: ["MSN_002"],
   },
   {
     id: "VOL_002",
@@ -127,7 +131,11 @@ const initialVolunteers: Volunteer[] = [
     clearance_level: 3,
     missions_completed: 28,
     current_mission: "MSN_002",
-    coordinates: { lat: 34.0550, lng: -118.2450 }
+    coordinates: { lat: 34.0550, lng: -118.2450 },
+    joined_at: "2024-03-12",
+    contact_email: "m.chen@impactgrid.ops",
+    contact_phone: "+1-555-0188",
+    mission_history: ["MSN_002"],
   },
   {
     id: "VOL_003",
@@ -137,7 +145,11 @@ const initialVolunteers: Volunteer[] = [
     availability: "available",
     clearance_level: 4,
     missions_completed: 35,
-    coordinates: { lat: 34.0480, lng: -118.2380 }
+    coordinates: { lat: 34.0480, lng: -118.2380 },
+    joined_at: "2023-11-20",
+    contact_email: "m.thorne@impactgrid.ops",
+    contact_phone: "+1-555-0210",
+    mission_history: [],
   },
   {
     id: "VOL_004",
@@ -147,7 +159,11 @@ const initialVolunteers: Volunteer[] = [
     availability: "busy",
     clearance_level: 5,
     missions_completed: 67,
-    coordinates: { lat: 34.0612, lng: -118.2517 }
+    coordinates: { lat: 34.0612, lng: -118.2517 },
+    joined_at: "2022-08-05",
+    contact_email: "s.reyes@impactgrid.ops",
+    contact_phone: "+1-555-0319",
+    mission_history: [],
   },
   {
     id: "VOL_005",
@@ -157,7 +173,11 @@ const initialVolunteers: Volunteer[] = [
     availability: "available",
     clearance_level: 3,
     missions_completed: 19,
-    coordinates: { lat: 34.0600, lng: -118.2300 }
+    coordinates: { lat: 34.0600, lng: -118.2300 },
+    joined_at: "2024-06-18",
+    contact_email: "j.okoro@impactgrid.ops",
+    contact_phone: "+1-555-0427",
+    mission_history: [],
   }
 ]
 
@@ -246,6 +266,100 @@ const initialResources: ResourceAllocation[] = [
   { id: "RES_005", name: "FOOD_SUPPLIES", current: 65, capacity: 100, status: "nominal" }
 ]
 
+const initialLogistics: LogisticsTask[] = [
+  {
+    id: "LOG_001",
+    title: "Water Purification Drop - Sector 7G",
+    team: "BRAVO_TEAM",
+    category: "water_purification_drop",
+    status: "en_route",
+    load_details: "12 units / 4,800 L capacity",
+    eta: "01:45",
+    priority: "critical",
+    destination: "Sector 7G",
+    destination_coordinates: { lat: 34.0522, lng: -118.2437 },
+    team_coordinates: { lat: 34.0480, lng: -118.2520 },
+    destination_urgency: 85,
+    created_at: new Date(Date.now() - 90 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "LOG_002",
+    title: "Medical Kit Transport - Field Hospital Delta",
+    team: "ECHO_TEAM",
+    category: "medical_kit_transport",
+    status: "pending",
+    load_details: "30 trauma kits, antibiotics, IV fluids",
+    eta: "03:30",
+    priority: "high",
+    destination: "Field Hospital Delta",
+    destination_coordinates: { lat: 34.0612, lng: -118.2517 },
+    team_coordinates: { lat: 34.0700, lng: -118.2400 },
+    destination_urgency: 72,
+    created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "LOG_003",
+    title: "Shelter Setup - Block 12 Urban",
+    team: "ALPHA_TEAM",
+    category: "shelter_setup",
+    status: "en_route",
+    load_details: "20 family tents, 80 cots, blankets",
+    eta: "02:15",
+    priority: "medium",
+    destination: "Block 12 Urban",
+    destination_coordinates: { lat: 34.0422, lng: -118.2237 },
+    team_coordinates: { lat: 34.0350, lng: -118.2150 },
+    destination_urgency: 35,
+    created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "LOG_004",
+    title: "Food Distribution - Refugee Camp A",
+    team: "DELTA_TEAM",
+    category: "food_distribution",
+    status: "pending",
+    load_details: "1,200 ration packs, 800 L water",
+    eta: "04:00",
+    priority: "high",
+    destination: "Refugee Camp A",
+    destination_coordinates: { lat: 34.0322, lng: -118.2637 },
+    team_coordinates: { lat: 34.0250, lng: -118.2700 },
+    destination_urgency: 60,
+    created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "LOG_005",
+    title: "Communication Relay Setup - Coastal Region B",
+    team: "FOXTROT_TEAM",
+    category: "communication_relay",
+    status: "en_route",
+    load_details: "2 mobile relay units, satellite uplink",
+    eta: "01:10",
+    priority: "critical",
+    destination: "Coastal Region B",
+    destination_coordinates: { lat: 34.0322, lng: -118.2637 },
+    team_coordinates: { lat: 34.0400, lng: -118.2580 },
+    destination_urgency: 92,
+    created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+  },
+  {
+    id: "LOG_006",
+    title: "Supply Delivery - Camp Silver",
+    team: "GAMMA_TEAM",
+    category: "supply_delivery",
+    status: "delivered",
+    load_details: "Generators, fuel reserves",
+    eta: "00:00",
+    priority: "medium",
+    destination: "Camp Silver",
+    destination_coordinates: { lat: 34.0612, lng: -118.2517 },
+    team_coordinates: { lat: 34.0612, lng: -118.2517 },
+    destination_urgency: 40,
+    created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    delivered_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+  },
+]
+
 const initialMetrics: SystemMetrics = {
   total_reports_ytd: 4821,
   active_missions: 32,
@@ -265,6 +379,8 @@ class DataStore {
   private intelStream: IntelStreamEntry[] = [...initialIntelStream]
   private resources: ResourceAllocation[] = [...initialResources]
   private metrics: SystemMetrics = { ...initialMetrics }
+  private logistics: LogisticsTask[] = [...initialLogistics]
+  private deployments: DeploymentLog[] = []
 
   // Reports
   getReports(): Report[] {
@@ -377,6 +493,55 @@ class DataStore {
   updateMetrics(updates: Partial<SystemMetrics>): SystemMetrics {
     this.metrics = { ...this.metrics, ...updates }
     return this.metrics
+  }
+
+  // Logistics
+  getLogistics(): LogisticsTask[] {
+    return [...this.logistics]
+  }
+
+  getLogisticsById(id: string): LogisticsTask | undefined {
+    return this.logistics.find(l => l.id === id)
+  }
+
+  addLogistics(task: LogisticsTask): LogisticsTask {
+    this.logistics.unshift(task)
+    return task
+  }
+
+  updateLogistics(id: string, updates: Partial<LogisticsTask>): LogisticsTask | undefined {
+    const index = this.logistics.findIndex(l => l.id === id)
+    if (index !== -1) {
+      this.logistics[index] = { ...this.logistics[index], ...updates }
+      return this.logistics[index]
+    }
+    return undefined
+  }
+
+  // Volunteer mgmt
+  addVolunteer(volunteer: Volunteer): Volunteer {
+    this.volunteers.push(volunteer)
+    return volunteer
+  }
+
+  removeVolunteer(id: string): boolean {
+    const index = this.volunteers.findIndex(v => v.id === id)
+    if (index !== -1) {
+      this.volunteers.splice(index, 1)
+      return true
+    }
+    return false
+  }
+
+  // Deployments
+  getDeployments(): DeploymentLog[] {
+    return [...this.deployments]
+  }
+
+  addDeployment(log: DeploymentLog): DeploymentLog {
+    this.deployments.unshift(log)
+    if (this.deployments.length > 100) this.deployments.pop()
+    return log
   }
 }
 
