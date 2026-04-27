@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server"
 import { dataStore } from "@/lib/data-store"
 import { matchVolunteers } from "@/lib/ai-processing"
 import type { IntelStreamEntry } from "@/lib/types"
@@ -7,15 +7,19 @@ import type { IntelStreamEntry } from "@/lib/types"
 // GET all missions
 export async function GET() {
   try {
-    // Try Supabase first
-    const supabase = await createClient()
-    const { data: missions, error } = await supabase
-      .from('missions')
-      .select('*')
-      .order('created_at', { ascending: false })
+    // Try Supabase first if configured
+    if (isSupabaseConfigured()) {
+      const supabase = await createClient()
+      if (supabase) {
+        const { data: missions, error } = await supabase
+          .from('missions')
+          .select('*')
+          .order('created_at', { ascending: false })
 
-    if (!error && missions) {
-      return NextResponse.json({ success: true, data: missions })
+        if (!error && missions) {
+          return NextResponse.json({ success: true, data: missions })
+        }
+      }
     }
 
     // Fallback to data store
@@ -35,7 +39,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { action, missionId, volunteerId } = body
-    const supabase = await createClient()
+    const supabase = isSupabaseConfigured() ? await createClient() : null
 
     if (action === "deploy") {
       // Deploy mission - match and assign volunteers
@@ -46,18 +50,19 @@ export async function POST(request: Request) {
         )
       }
 
-      // Try Supabase first
-      const { data: mission } = await supabase
-        .from('missions')
-        .select('*')
-        .eq('id', missionId)
-        .single()
+      // Try Supabase first if configured
+      if (supabase) {
+        const { data: mission } = await supabase
+          .from('missions')
+          .select('*')
+          .eq('id', missionId)
+          .single()
 
-      const { data: volunteers } = await supabase
-        .from('volunteers')
-        .select('*')
+        const { data: volunteers } = await supabase
+          .from('volunteers')
+          .select('*')
 
-      if (mission && volunteers) {
+        if (mission && volunteers) {
         const matched = matchVolunteers(mission, volunteers)
         const assignedIds = matched.map(v => v.id)
 
@@ -89,13 +94,14 @@ export async function POST(request: Request) {
           .eq('id', missionId)
           .single()
 
-        return NextResponse.json({
-          success: true,
-          data: {
-            mission: updatedMission,
-            assigned_volunteers: matched
-          }
-        })
+          return NextResponse.json({
+            success: true,
+            data: {
+              mission: updatedMission,
+              assigned_volunteers: matched
+            }
+          })
+        }
       }
 
       // Fallback to data store
@@ -150,52 +156,54 @@ export async function POST(request: Request) {
         )
       }
 
-      // Try Supabase
-      const { data: mission } = await supabase
-        .from('missions')
-        .select('*')
-        .eq('id', missionId)
-        .single()
-
-      const { data: volunteer } = await supabase
-        .from('volunteers')
-        .select('*')
-        .eq('id', volunteerId)
-        .single()
-
-      if (mission && volunteer) {
-        const updatedAssigned = [...(mission.assigned_volunteers || []), volunteerId]
-        
-        await supabase
+      // Try Supabase if configured
+      if (supabase) {
+        const { data: mission } = await supabase
           .from('missions')
-          .update({ assigned_volunteers: updatedAssigned, updated_at: new Date().toISOString() })
+          .select('*')
           .eq('id', missionId)
+          .single()
 
-        await supabase
+        const { data: volunteer } = await supabase
           .from('volunteers')
-          .update({ 
-            availability: "busy", 
-            current_mission: missionId,
-            updated_at: new Date().toISOString()
+          .select('*')
+          .eq('id', volunteerId)
+          .single()
+
+        if (mission && volunteer) {
+          const updatedAssigned = [...(mission.assigned_volunteers || []), volunteerId]
+          
+          await supabase
+            .from('missions')
+            .update({ assigned_volunteers: updatedAssigned, updated_at: new Date().toISOString() })
+            .eq('id', missionId)
+
+          await supabase
+            .from('volunteers')
+            .update({ 
+              availability: "busy", 
+              current_mission: missionId,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', volunteerId)
+
+          const { data: updatedMission } = await supabase
+            .from('missions')
+            .select('*')
+            .eq('id', missionId)
+            .single()
+
+          const { data: updatedVolunteer } = await supabase
+            .from('volunteers')
+            .select('*')
+            .eq('id', volunteerId)
+            .single()
+
+          return NextResponse.json({
+            success: true,
+            data: { mission: updatedMission, volunteer: updatedVolunteer }
           })
-          .eq('id', volunteerId)
-
-        const { data: updatedMission } = await supabase
-          .from('missions')
-          .select('*')
-          .eq('id', missionId)
-          .single()
-
-        const { data: updatedVolunteer } = await supabase
-          .from('volunteers')
-          .select('*')
-          .eq('id', volunteerId)
-          .single()
-
-        return NextResponse.json({
-          success: true,
-          data: { mission: updatedMission, volunteer: updatedVolunteer }
-        })
+        }
       }
 
       // Fallback to data store
@@ -233,48 +241,50 @@ export async function POST(request: Request) {
         )
       }
 
-      // Try Supabase
-      const { data: mission } = await supabase
-        .from('missions')
-        .select('*')
-        .eq('id', missionId)
-        .single()
-
-      if (mission) {
-        await supabase
-          .from('missions')
-          .update({ status: "completed", updated_at: new Date().toISOString() })
-          .eq('id', missionId)
-
-        // Free up volunteers
-        for (const volId of (mission.assigned_volunteers || [])) {
-          const { data: vol } = await supabase
-            .from('volunteers')
-            .select('missions_completed')
-            .eq('id', volId)
-            .single()
-
-          await supabase
-            .from('volunteers')
-            .update({
-              availability: "available",
-              current_mission: null,
-              missions_completed: (vol?.missions_completed || 0) + 1,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', volId)
-        }
-
-        const { data: updatedMission } = await supabase
+      // Try Supabase if configured
+      if (supabase) {
+        const { data: mission } = await supabase
           .from('missions')
           .select('*')
           .eq('id', missionId)
           .single()
 
-        return NextResponse.json({
-          success: true,
-          data: { mission: updatedMission }
-        })
+        if (mission) {
+          await supabase
+            .from('missions')
+            .update({ status: "completed", updated_at: new Date().toISOString() })
+            .eq('id', missionId)
+
+          // Free up volunteers
+          for (const volId of (mission.assigned_volunteers || [])) {
+            const { data: vol } = await supabase
+              .from('volunteers')
+              .select('missions_completed')
+              .eq('id', volId)
+              .single()
+
+            await supabase
+              .from('volunteers')
+              .update({
+                availability: "available",
+                current_mission: null,
+                missions_completed: (vol?.missions_completed || 0) + 1,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', volId)
+          }
+
+          const { data: updatedMission } = await supabase
+            .from('missions')
+            .select('*')
+            .eq('id', missionId)
+            .single()
+
+          return NextResponse.json({
+            success: true,
+            data: { mission: updatedMission }
+          })
+        }
       }
 
       // Fallback to data store
