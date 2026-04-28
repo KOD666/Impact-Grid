@@ -17,6 +17,7 @@ import {
   deployMission,
 } from "@/hooks/use-dashboard"
 import { useAppContext } from "@/components/providers/app-provider"
+import { suggestVolunteers } from "@/lib/allocate"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import type { Mission, Volunteer } from "@/lib/types"
 
@@ -32,6 +33,7 @@ export default function MissionsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mapOpen, setMapOpen] = useState(true)
   const [filteredMissions, setFilteredMissions] = useState<Mission[]>([])
+  const [suggestMissionId, setSuggestMissionId] = useState<string | null>(null)
 
   const typedMissions = missions as Mission[]
   const typedVolunteers = volunteers as Volunteer[]
@@ -114,6 +116,24 @@ export default function MissionsPage() {
   }
 
   const handleViewDetails = (missionId: string) => {
+    setDetailId(missionId)
+    setDetailOpen(true)
+  }
+
+  const handleSuggestTeam = (missionId: string) => {
+    const mission = typedMissions.find((m) => m.id === missionId)
+    if (!mission) return
+    
+    const suggestions = suggestVolunteers(typedVolunteers, {
+      coordinates: mission.coordinates,
+      requiredSkills: [mission.category],
+      urgency: mission.urgency,
+      volunteersNeeded: mission.volunteers_required,
+    })
+    
+    // Log suggestions for now - open detail modal to show
+    console.log('[v0] Suggested team for', mission.title, ':', suggestions)
+    setSuggestMissionId(missionId)
     setDetailId(missionId)
     setDetailOpen(true)
   }
@@ -255,27 +275,33 @@ export default function MissionsPage() {
                       </p>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {pendingMissions.map((mission, index) => (
-                          <TaskOrderCard
-                            key={mission.id}
-                            priority={`PRIORITY_${(index + 1).toString().padStart(2, "0")}`}
-                            title={mission.title}
-                            description={mission.description}
-                            personnel={`${mission.volunteers_required} VOLUNTEERS`}
-                            duration={mission.time_estimate}
-                            location={mission.location}
-                            equipment={mission.category.toUpperCase()}
-                            status={getStatusFromMission(mission)}
-                            isSelected={selectedId === mission.id}
-                            onSelect={() => setSelectedId(mission.id)}
-                            onDeploy={() => {
-                              queueMissionStatus(mission.id, "active")
-                              handleDeploy(mission.id)
-                            }}
-                            onViewDetails={() => handleViewDetails(mission.id)}
-                            isDeploying={deploying === mission.id}
-                          />
-                        ))}
+                        {pendingMissions.map((mission, index) => {
+                          const isUnassigned = !mission.assigned_volunteers || mission.assigned_volunteers.length === 0
+                          return (
+                            <TaskOrderCard
+                              key={mission.id}
+                              priority={`PRIORITY_${(index + 1).toString().padStart(2, "0")}`}
+                              title={mission.title}
+                              description={mission.description}
+                              personnel={`${mission.volunteers_required} VOLUNTEERS`}
+                              duration={mission.time_estimate}
+                              location={mission.location}
+                              equipment={mission.category.toUpperCase()}
+                              status={getStatusFromMission(mission)}
+                              isSelected={selectedId === mission.id}
+                              onSelect={() => setSelectedId(mission.id)}
+                              onDeploy={() => {
+                                queueMissionStatus(mission.id, "active")
+                                handleDeploy(mission.id)
+                              }}
+                              onViewDetails={() => handleViewDetails(mission.id)}
+                              isDeploying={deploying === mission.id}
+                              isUnassigned={isUnassigned}
+                              showSuggestTeam={isUnassigned}
+                              onSuggestTeam={() => handleSuggestTeam(mission.id)}
+                            />
+                          )
+                        })}
                       </div>
                     )}
                   </div>
