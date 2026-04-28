@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic"
 import { cn } from "@/lib/utils"
+import { ArrowUpRight } from "lucide-react"
 import type { CrisisMarker, TeamMarker } from "./crisis-map-inner"
 import type { ExternalMarker } from "@/hooks/use-dashboard"
 import { useUsgsEarthquakes, useGdacsDisasters } from "@/hooks/use-dashboard"
@@ -89,6 +90,13 @@ export function CrisisMap({
               {subtitle}
             </span>
           )}
+          <button
+            className="p-1.5 hover:bg-muted rounded-sm transition-all ml-2"
+            title="View full map"
+            aria-label="View full map"
+          >
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+          </button>
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { ArrowUpRight } from "lucide-react"
 
 interface MapMarker {
   id: string
@@ -51,12 +52,21 @@ export function TacticalMap({
           <span className="w-1.5 h-1.5 bg-[var(--tactical-orange)]" />
           {title}
         </p>
-        {showCoords && (
-          <div className="flex items-center gap-4 font-mono text-[10px] text-muted-foreground">
-            <span>LAT: 34.0522° N</span>
-            <span>LNG: 118.2437° N</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {showCoords && (
+            <div className="flex items-center gap-4 font-mono text-[10px] text-muted-foreground">
+              <span>LAT: 34.0522° N</span>
+              <span>LNG: 118.2437° N</span>
+            </div>
+          )}
+          <button
+            className="p-1.5 hover:bg-muted rounded-sm transition-all"
+            title="View full map"
+            aria-label="View full map"
+          >
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+          </button>
+        </div>
       </div>
 
       {/* Map Area */}

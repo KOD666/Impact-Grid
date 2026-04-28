@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Sidebar } from '@/components/impact-grid/sidebar'
 import { TopNav } from '@/components/impact-grid/top-nav'
+import { CrisisMap } from '@/components/impact-grid/crisis-map'
 import { useAppContext } from '@/components/providers/app-provider'
 import { suggestVolunteers } from '@/lib/allocate'
 import { AlertTriangle, MapPin, Clock, Users, Loader2, Radio, ChevronRight, Check, X } from 'lucide-react'
@@ -258,6 +259,27 @@ export default function GDACSPage() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
+      )}
+
+      {/* GDACS Map */}
+      {!loading && alerts.length > 0 && (
+        <CrisisMap
+          title="GDACS_GEOSPATIAL // EVENT_LOCATIONS"
+          subtitle={`${alerts.length} ACTIVE_EVENTS`}
+          markers={alerts
+            .filter(a => a.latitude !== undefined && a.longitude !== undefined)
+            .map(a => ({
+              id: a.id,
+              label: a.title,
+              lat: a.latitude!,
+              lng: a.longitude!,
+              urgency: a.alertLevel === 'Red' ? 85 : a.alertLevel === 'Orange' ? 60 : 30,
+              category: a.eventType,
+            }))}
+          height="400px"
+          showLegend={false}
+          showExternalFeeds={false}
+        />
       )}
 
       {/* Alerts Grid */}
