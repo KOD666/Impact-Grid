@@ -1,21 +1,18 @@
 import { createBrowserClient } from '@supabase/ssr'
 
-// Check if Supabase environment variables are configured
+// The Supabase connector exposes NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 export function isSupabaseConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  )
+  return Boolean(SUPABASE_URL && SUPABASE_KEY)
 }
 
 export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  // Gracefully return null if env vars are missing (for local dev without Supabase)
-  if (!url || !key) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
     return null
   }
-
-  return createBrowserClient(url, key)
+  return createBrowserClient(SUPABASE_URL, SUPABASE_KEY)
 }

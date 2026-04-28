@@ -1,62 +1,70 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow login page and auth routes without session
-  if (pathname === '/login' || pathname.startsWith('/auth/')) {
+  // Always allow the login page and Next.js internals through
+  if (
+    pathname === '/login' ||
+    pathname.startsWith('/auth/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/api/')
+  ) {
     return NextResponse.next()
   }
 
-  // Check for Supabase session
+  // If Supabase is not configured, allow through (dev mode)
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    return NextResponse.next()
+  }
+
+  // Build a response we can mutate (for cookie refresh)
+  let response = NextResponse.next({ request })
+
   try {
-    const supabase = await createClient()
-    if (!supabase) {
-      // Supabase not configured, redirect to login
-      if (pathname !== '/login') {
-        return NextResponse.redirect(new URL('/login', request.url))
-      }
-      return NextResponse.next()
-    }
-
-    const { data: { session } } = await supabase.auth.getSession()
-
-    if (!session) {
-      // No session, redirect to login
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-
-    // User is authenticated - attach role to headers for server components
-    const role = session.user.user_metadata?.role || 'volunteer'
-    const requestHeaders = new Headers(request.headers)
-    requestHeaders.set('x-user-role', String(role))
-    requestHeaders.set('x-user-email', session.user.email || '')
-
-    return NextResponse.next({
-      request: {
-        headers: requestHeaders,
+    const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+          response = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
       },
     })
-  } catch (error) {
-    console.error('[v0] Middleware error:', error)
-    // On error, redirect to login if not already there
-    if (pathname !== '/login') {
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
-    return NextResponse.next()
+
+    // Attach role + email to request headers for server components
+    const role = user.user_metadata?.role || 'volunteer'
+    response.headers.set('x-user-role', String(role))
+    response.headers.set('x-user-email', user.email || '')
+
+    return response
+  } catch (error) {
+    // On any error, fail open on login redirect to avoid infinite loops
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

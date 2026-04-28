@@ -49,7 +49,7 @@ export default function LoginPage() {
     try {
       const supabase = createClient()
       if (!supabase) {
-        setError('Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment variables.')
+        setError('Supabase is not configured. Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are set in your environment.')
         setLoading(false)
         return
       }
@@ -90,7 +90,7 @@ export default function LoginPage() {
     try {
       const supabase = createClient()
       if (!supabase) {
-        setError('Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment variables.')
+        setError('Supabase is not configured. Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are set in your environment.')
         setLoading(false)
         return
       }
