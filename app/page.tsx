@@ -9,7 +9,7 @@ import { CrisisMap } from "@/components/impact-grid/crisis-map"
 import { LiveIntelStream } from "@/components/impact-grid/live-intel-stream"
 import { PredictiveAlerts } from "@/components/impact-grid/predictive-alerts"
 import { ResourceMatrix } from "@/components/impact-grid/resource-matrix"
-import { useDashboard, useReports, useMissions } from "@/hooks/use-dashboard"
+import { useDashboard, useReports, useMissions, useGdacsDisasters } from "@/hooks/use-dashboard"
 import { DeployResponseBar } from "@/components/impact-grid/deploy-response-bar"
 import type { Report, Mission, IntelStreamEntry } from "@/lib/types"
 
@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const { data, refresh } = useDashboard()
   const { reports } = useReports()
   const { missions } = useMissions()
+  const { markers: gdacsMarkers } = useGdacsDisasters()
   const router = useRouter()
 
   const [filteredIntel, setFilteredIntel] = useState<IntelStreamEntry[] | null>(null)
@@ -72,7 +73,9 @@ export default function DashboardPage() {
                 title="GEOSPATIAL_INTEL // SYNC: ACTIVE"
                 subtitle={`${markers.length} ACTIVE MARKERS`}
                 markers={markers}
+                externalMarkers={gdacsMarkers}
                 height="380px"
+                showExternalFeeds={true}
                 onViewMission={(missionId) => router.push(`/missions/${missionId}`)}
               />
               <LiveIntelStream 
