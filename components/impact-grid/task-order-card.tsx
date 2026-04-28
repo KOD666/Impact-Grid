@@ -71,27 +71,27 @@ export function TaskOrderCard({
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
-        <span className="font-mono text-xs text-[var(--tactical-orange)] flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-[var(--tactical-orange)]" />
-          {priority}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30 gap-2 min-w-0">
+        <span className="font-mono text-xs text-[var(--tactical-orange)] flex items-center gap-2 truncate">
+          <span className="w-1.5 h-1.5 bg-[var(--tactical-orange)] flex-shrink-0" />
+          <span className="truncate">{priority}</span>
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {isUnassigned && (
-            <span className="font-mono text-[10px] px-1.5 py-0.5 bg-amber-600/20 text-amber-400 border border-amber-500/30 rounded-sm">
+            <span className="font-mono text-[10px] px-1.5 py-0.5 bg-amber-600/20 text-amber-400 border border-amber-500/30 rounded-sm whitespace-nowrap">
               UNASSIGNED
             </span>
           )}
-          <span className={cn("font-mono text-[10px]", statusColors[status])}>
+          <span className={cn("font-mono text-[10px] whitespace-nowrap", statusColors[status])}>
             {status}
           </span>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4">
-        <h3 className="font-mono text-base font-bold tracking-wide mb-2">{title}</h3>
-        <p className="font-mono text-xs text-muted-foreground leading-relaxed line-clamp-2">
+      <div className="p-4 min-w-0">
+        <h3 className="font-mono text-base font-bold tracking-wide mb-2 line-clamp-2 break-words">{title}</h3>
+        <p className="font-mono text-xs text-muted-foreground leading-relaxed line-clamp-2 break-words">
           {description}
         </p>
 
@@ -116,14 +116,14 @@ export function TaskOrderCard({
         </div>
 
         {/* Actions */}
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex items-center gap-2">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation()
               onViewDetails?.()
             }}
-            className="flex-1 px-3 py-2 border border-border font-mono text-[10px] tracking-wider rounded-sm hover:bg-muted transition-all"
+            className="flex-1 px-2 py-2 border border-border font-mono text-[10px] tracking-wider rounded-sm hover:bg-muted transition-all"
           >
             VIEW_DETAILS
           </button>
@@ -134,7 +134,7 @@ export function TaskOrderCard({
                 e.stopPropagation()
                 onSuggestTeam()
               }}
-              className="flex-1 px-3 py-2 bg-amber-600/20 text-amber-400 border border-amber-500/30 font-mono text-[10px] tracking-wider rounded-sm hover:bg-amber-600/30 transition-all"
+              className="flex-1 px-2 py-2 bg-amber-600/20 text-amber-400 border border-amber-500/30 font-mono text-[10px] tracking-wider rounded-sm hover:bg-amber-600/30 transition-all"
             >
               SUGGEST_TEAM
             </button>
@@ -147,7 +147,7 @@ export function TaskOrderCard({
               }}
               disabled={isDeploying}
               className={cn(
-                "flex-1 px-3 py-2 bg-[var(--tactical-orange)] text-primary-foreground font-mono text-[10px] tracking-wider font-semibold rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2",
+                "flex-1 px-2 py-2 bg-[var(--tactical-orange)] text-primary-foreground font-mono text-[10px] tracking-wider font-semibold rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2",
                 isDeploying && "opacity-70 cursor-not-allowed"
               )}
             >
@@ -162,7 +162,7 @@ export function TaskOrderCard({
             </button>
           )}
           {isActive && (
-            <span className="flex-1 px-3 py-2 bg-[var(--tactical-green)]/20 text-[var(--tactical-green)] border border-[var(--tactical-green)]/30 font-mono text-[10px] tracking-wider font-semibold rounded-sm text-center">
+            <span className="flex-1 px-2 py-2 bg-[var(--tactical-green)]/20 text-[var(--tactical-green)] border border-[var(--tactical-green)]/30 font-mono text-[10px] tracking-wider font-semibold rounded-sm text-center">
               IN_PROGRESS
             </span>
           )}

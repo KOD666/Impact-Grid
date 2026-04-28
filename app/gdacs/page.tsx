@@ -215,11 +215,11 @@ export default function GDACSPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="lg:ml-56">
         <TopNav />
-        <main className="flex-1 overflow-auto p-6 space-y-6">
+        <main className="overflow-auto p-6 space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
