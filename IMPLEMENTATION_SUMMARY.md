@@ -2,7 +2,7 @@
 
 ## Overview
 
-Complete implementation of the ImpactGrid Crisis Response Platform including all original features plus a full second phase: role-based access control, smart volunteer allocation, GDACS live feed integration, missions page enhancements, and nav overlay fixes.
+Complete implementation of the ImpactGrid Crisis Response Platform including all original features plus a full second phase: role-based access control, smart volunteer allocation, GDACS live feed integration, USGS earthquake feed on dashboard map, missions page enhancements, and nav overlay fixes.
 
 ---
 
@@ -31,6 +31,8 @@ Complete implementation of the ImpactGrid Crisis Response Platform including all
 
 #### Dashboard (`/`)
 - Leaflet map with incident markers
+- USGS earthquakes (7-day significant) with magnitude-based circle markers
+- GDACS disasters as external feed markers
 - Mission stats, resource matrix, live intel stream, predictive alerts
 
 #### Missions (`/missions`)
@@ -71,12 +73,24 @@ Complete implementation of the ImpactGrid Crisis Response Platform including all
 - Options interface: `coordinates`, `requiredSkills`, `urgency`, `volunteersNeeded`
 - Handles both `available` and `availability` field naming variants defensively
 
+#### USGS Earthquakes on Dashboard Map
+- Fetches 7-day significant earthquakes from `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_7days.geojson`
+- Extracts per feature: `mag`, `place`, `time`, `lat`, `lon`
+- CircleMarker rendering:
+  - Radius = `mag * 3`
+  - Fill color: M6+ → `#ef4444` (red), M5–6 → `#f97316` (orange), M<5 → `#eab308` (yellow)
+  - `fillOpacity: 0.6`, `stroke: false`
+- Popup on click: "M{mag} — {place}" + relative time ("3 hours ago")
+- Bottom-left legend with three colored dots: M6+, M5–6, M<5
+- Graceful error handling: logs error and returns, does not break map
+
 #### GDACS Feed (`/api/gdacs/route.ts` + `/app/gdacs/page.tsx`)
 - API route fetches `https://www.gdacs.org/xml/rss.xml` with a 5-minute revalidate
 - Parses raw XML: extracts `<item>` tags, CDATA title/country, `gdacs:alertlevel`, `geo:lat`/`geo:long`
 - On any failure (HTTP error, network, empty parse): falls back to 3 hardcoded mock events and logs the error
 - Returns `{ events, cached: true }` when using fallback data
 - GDACS page (`/app/gdacs/page.tsx`):
+  - Now wrapped in Sidebar + TopNav for consistent navigation
   - Fetches on mount, shows amber "Live feed unavailable" banner when `cached: true`
   - Alert cards color-coded by alert level (Red/Orange/Yellow)
   - Each card has a CREATE_MISSION button that opens an inline allocation preview modal
@@ -111,9 +125,12 @@ Complete implementation of the ImpactGrid Crisis Response Platform including all
 /lib
   allocate.ts              → Pure TS smart allocation with Haversine + skill boost
 
+/hooks
+  use-dashboard.ts         → + USGS 7-day significant endpoint, magToColor, magToRadius, magnitude field
+
 /app
   /gdacs
-    page.tsx               → GDACS feed page, alert cards, create-mission modal
+    page.tsx               → GDACS feed page with Sidebar + TopNav, alert cards, create-mission modal
   /missions
     page.tsx               → + Unassigned badge, Suggest team, New mission button/modal
   /api
@@ -123,6 +140,8 @@ Complete implementation of the ImpactGrid Crisis Response Platform including all
       route.ts             → + action:"create" handler
 
 /components/impact-grid
+  crisis-map-inner.tsx     → + USGS magnitude-based radius/color, formatTimeAgo, bottom-left legend
+  crisis-map.tsx           → useUsgsEarthquakes + useGdacsDisasters external markers
   top-nav.tsx              → Role switcher dropdown, fixed notification bell, fixed settings panel
   sidebar.tsx              → GDACS nav link (role-gated), Deploy button role-gate
   deploy-response-bar.tsx  → Hidden for volunteer role
@@ -154,7 +173,10 @@ Complete implementation of the ImpactGrid Crisis Response Platform including all
 | Role switcher (3 roles) | Done | AppContext + TopNav dropdown |
 | Role gates on buttons | Done | Personnel, Missions, GDACS, Deploy |
 | Smart allocation (Haversine) | Done | `/lib/allocate.ts` |
+| USGS earthquakes on map | Done | `crisis-map-inner.tsx` + `use-dashboard.ts` |
+| USGS magnitude legend | Done | Bottom-left of map |
 | GDACS feed page | Done | `/app/gdacs/page.tsx` |
+| GDACS nav/sidebar | Done | Wrapped in Sidebar + TopNav |
 | GDACS mock fallback | Done | `/api/gdacs/route.ts` |
 | GDACS create-mission modal | Done | With allocation preview |
 | Unassigned badge on missions | Done | `task-order-card.tsx` |
@@ -174,9 +196,10 @@ Complete implementation of the ImpactGrid Crisis Response Platform including all
 - **Maps**: Leaflet (dynamic import, no SSR)
 - **Database**: In-memory data store (Supabase-ready)
 - **Icons**: Lucide React
+- **External Feeds**: USGS Earthquake API, GDACS RSS Feed
 
 ---
 
 *Last updated: April 28, 2026*
 *Project: Impact-Grid (KOD666)*
-*Branch: impactgrid-prototype-fixes*
+*Branch: v0/k3533avi-2863-5c6c54fc*

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Sidebar } from '@/components/impact-grid/sidebar'
+import { TopNav } from '@/components/impact-grid/top-nav'
 import { useAppContext } from '@/components/providers/app-provider'
 import { suggestVolunteers } from '@/lib/allocate'
 import { AlertTriangle, MapPin, Clock, Users, Loader2, Radio, ChevronRight, Check, X } from 'lucide-react'
@@ -213,26 +215,30 @@ export default function GDACSPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-mono font-bold text-foreground tracking-tight">
-            GDACS_FEED
-          </h1>
-          <p className="text-sm text-muted-foreground font-mono mt-1">
-            Global Disaster Alert and Coordination System
-          </p>
-        </div>
-        <button
-          onClick={fetchAlerts}
-          disabled={loading}
-          className="px-4 py-2 bg-muted border border-border font-mono text-xs tracking-wider rounded-sm hover:bg-muted/80 transition-all flex items-center gap-2"
-        >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Radio className="w-4 h-4" />}
-          REFRESH_FEED
-        </button>
-      </div>
+    <div className="flex min-h-screen bg-background">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <TopNav />
+        <main className="flex-1 overflow-auto p-6 space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-mono font-bold text-foreground tracking-tight">
+                GDACS_FEED
+              </h1>
+              <p className="text-sm text-muted-foreground font-mono mt-1">
+                Global Disaster Alert and Coordination System
+              </p>
+            </div>
+            <button
+              onClick={fetchAlerts}
+              disabled={loading}
+              className="px-4 py-2 bg-muted border border-border font-mono text-xs tracking-wider rounded-sm hover:bg-muted/80 transition-all flex items-center gap-2"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Radio className="w-4 h-4" />}
+              REFRESH_FEED
+            </button>
+          </div>
 
       {/* Error State */}
       {isCached && (
@@ -484,6 +490,8 @@ export default function GDACSPage() {
           </div>
         </div>
       )}
+        </main>
+      </div>
     </div>
   )
 }
