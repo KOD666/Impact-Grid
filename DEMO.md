@@ -4,15 +4,20 @@ Follow this sequence exactly. Each section is one continuous recording segment. 
 
 ---
 
-## SEGMENT 1: Dashboard Overview (30 sec)
+## SEGMENT 1: Dashboard Overview + USGS Earthquakes (40 sec)
 
 **URL:** `/`
 
 1. Open the app. Let the dashboard fully load.
 2. Pan across the top metrics row — point out Total Missions, Volunteers, Active Alerts.
-3. Hover over the crisis map markers briefly.
-4. Scroll down to the Live Intel Stream — let it sit for 2 seconds so the viewer sees the feed.
-5. Point out the Deploy Response bar at the bottom (grayed out, no pending changes).
+3. Hover over the crisis map. Point out the DATA LAYERS toggle in the top-right of the map.
+4. Toggle USGS layer on — show the earthquake markers appearing.
+5. Hover over a USGS marker — show the popup: "M{mag} — {place}" + relative time.
+6. Point to the **bottom-left legend**: three colored dots labeled M6+, M5–6, M<5.
+7. Scroll down to the Live Intel Stream — let it sit for 2 seconds so the viewer sees the feed.
+8. Point out the Deploy Response bar at the bottom (grayed out, no pending changes).
+
+**Say:** "USGS significant earthquakes from the past 7 days appear on the map with magnitude-based sizing and coloring. The legend shows the scale."
 
 ---
 
@@ -30,7 +35,7 @@ Follow this sequence exactly. Each section is one continuous recording segment. 
 
 ---
 
-## SEGMENT 3: Notification Bell Fix (15 sec)
+## SEGMENT 3: Notification Bell & Settings Panel Fix (15 sec)
 
 **URL:** any page
 
@@ -83,18 +88,19 @@ Follow this sequence exactly. Each section is one continuous recording segment. 
 
 **URL:** `/gdacs`
 
-> Note: If the live feed is unavailable, the page shows mock events with an amber "Live feed unavailable" banner — that is expected behavior.
+> Note: The GDACS page now includes the sidebar and top navigation like all other pages. If the live feed is unavailable, the page shows mock events with an amber "Live feed unavailable" banner — that is expected behavior.
 
 1. Navigate to GDACS from the sidebar.
-2. If the amber cached-data banner appears, point it out and explain the graceful fallback.
-3. Show the alert cards: each card has title, country, alert level badge (Red/Orange/Yellow), and coordinates.
-4. Click **CREATE_MISSION** on a Red alert card.
-5. The modal opens — show the pre-filled event title and the allocation preview.
-6. Show the volunteer suggestions with scores.
-7. Fill in a mission title if needed and click **CREATE_MISSION**.
-8. Navigate to `/missions` — show the new mission card has appeared.
+2. Verify the sidebar and top nav are visible (same layout as other pages).
+3. If the amber cached-data banner appears, point it out and explain the graceful fallback.
+4. Show the alert cards: each card has title, country, alert level badge (Red/Orange/Yellow), and coordinates.
+5. Click **CREATE_MISSION** on a Red alert card.
+6. The modal opens — show the pre-filled event title and the allocation preview.
+7. Show the volunteer suggestions with scores.
+8. Fill in a mission title if needed and click **CREATE_MISSION**.
+9. Navigate to `/missions` — show the new mission card has appeared.
 
-**Say:** "GDACS alerts are parsed directly from the UN feed. When the feed is unreachable, the app falls back to cached events and flags it clearly."
+**Say:** "GDACS alerts are parsed directly from the UN feed. When the feed is unreachable, the app falls back to cached events and flags it clearly. The page now has full navigation like every other page."
 
 ---
 
@@ -138,9 +144,10 @@ Follow this sequence exactly. Each section is one continuous recording segment. 
 
 ## Key Talking Points (say at any point)
 
+- **USGS Integration:** 7-day significant earthquakes rendered with magnitude-based size and color. Legend in bottom-left. Graceful error handling.
 - **Role-Based Access:** Three roles with gates on every destructive or privileged action — no hard-coded user, switchable at runtime.
 - **Smart Allocation:** Haversine distance + skill match + urgency multiplier produces a ranked volunteer shortlist in milliseconds, client-side, no API call needed.
-- **GDACS Integration:** Live UN disaster feed parsed from RSS XML. Graceful fallback to mock data with a clear UI signal — no silent failures.
+- **GDACS Integration:** Live UN disaster feed parsed from RSS XML. Graceful fallback to mock data with a clear UI signal — no silent failures. Page now has full sidebar/nav.
 - **Atomic Deploy:** All staged changes (mission statuses, volunteer assignments, logistics) committed in a single POST with audit trail.
 - **Overlay Fix:** Notification bell and settings panel use `position: fixed` at z-index 9999, confirmed to render above sidebar and map layers on all pages.
 
@@ -148,7 +155,9 @@ Follow this sequence exactly. Each section is one continuous recording segment. 
 
 ## Troubleshooting
 
+- **USGS markers not showing:** Check the DATA LAYERS toggle in the map top-right. USGS layer may be toggled off.
 - **GDACS page shows amber banner:** Expected. Live feed may be blocked in sandbox — mock events show full flow.
+- **GDACS page missing nav/sidebar:** Hard refresh. If still missing, check for console errors.
 - **Suggest Team shows no volunteers:** Data store may be empty. Add a volunteer on `/personnel` first, or reload.
 - **Deploy bar stays grayed out:** Make at least one change (toggle availability, assign a mission) to queue a pending change.
 - **Map does not load:** Hard refresh the page. Leaflet requires client-side only — the dynamic import handles SSR but the first paint can lag.

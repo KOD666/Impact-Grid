@@ -9,7 +9,7 @@ const fetcher = (url: string) => fetch(url).then(res => res.json())
 // ---------------------------------------------------------------------------
 
 const USGS_URL =
-  "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson"
+  "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_7days.geojson"
 
 export type ExternalUrgency = "critical" | "high" | "medium"
 
@@ -25,6 +25,7 @@ export interface ExternalMarker {
   detail?: string
   url?: string
   timestamp?: string
+  magnitude?: number
 }
 
 interface USGSFeature {
@@ -49,7 +50,7 @@ interface USGSResponse {
 function magToUrgency(mag: number | null | undefined): ExternalUrgency {
   if (typeof mag !== "number") return "medium"
   if (mag >= 6) return "critical"
-  if (mag >= 4) return "high"
+  if (mag >= 5) return "high"
   return "medium"
 }
 
@@ -57,6 +58,18 @@ export function urgencyToColor(u: ExternalUrgency): string {
   if (u === "critical") return "#ef4444"
   if (u === "high") return "#f97316"
   return "#eab308"
+}
+
+export function magToColor(mag: number | null | undefined): string {
+  if (typeof mag !== "number") return "#eab308"
+  if (mag >= 6) return "#ef4444"
+  if (mag >= 5) return "#f97316"
+  return "#eab308"
+}
+
+export function magToRadius(mag: number | null | undefined): number {
+  if (typeof mag !== "number") return 6
+  return mag * 3
 }
 
 export function useUsgsEarthquakes() {
@@ -74,7 +87,8 @@ export function useUsgsEarthquakes() {
         typeof f.geometry.coordinates[1] === "number",
     )
     .map((f) => {
-      const urgency = magToUrgency(f.properties.mag)
+      const mag = f.properties.mag
+      const urgency = magToUrgency(mag)
       return {
         id: `usgs_${f.id}`,
         source: "usgs" as const,
@@ -82,16 +96,17 @@ export function useUsgsEarthquakes() {
         lat: f.geometry.coordinates[1],
         lng: f.geometry.coordinates[0],
         urgency,
-        markerColor: "#f97316", // orange for USGS
+        markerColor: magToColor(mag),
         category: "earthquake",
         detail:
-          typeof f.properties.mag === "number"
-            ? `M ${f.properties.mag.toFixed(1)}`
+          typeof mag === "number"
+            ? `M ${mag.toFixed(1)}`
             : undefined,
         url: f.properties.url,
         timestamp: f.properties.time
           ? new Date(f.properties.time).toISOString()
           : undefined,
+        magnitude: typeof mag === "number" ? mag : undefined,
       }
     })
 
