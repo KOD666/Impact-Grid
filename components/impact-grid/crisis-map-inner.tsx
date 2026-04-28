@@ -48,6 +48,8 @@ interface CrisisMapInnerProps {
   focusId?: string | null
   onMarkerClick?: (marker: CrisisMarker) => void
   onViewMission?: (missionId: string) => void
+  usgsError?: boolean
+  gdacsError?: boolean
 }
 
 function urgencyColor(urgency: number): string {
@@ -114,7 +116,7 @@ function LayerLegend({
   layers,
   onToggle,
 }: {
-  layers: { id: string; label: string; color: string; enabled: boolean; count: number }[]
+  layers: { id: string; label: string; color: string; enabled: boolean; count: number; error?: boolean }[]
   onToggle: (id: string) => void
 }) {
   return (
@@ -163,7 +165,7 @@ function LayerLegend({
             }}
           />
           <span>
-            {layer.label} ({layer.count})
+            {layer.label} ({layer.error ? "!" : layer.count})
           </span>
         </label>
       ))}
@@ -182,6 +184,8 @@ export default function CrisisMapInner({
   focusId,
   onMarkerClick,
   onViewMission,
+  usgsError = false,
+  gdacsError = false,
 }: CrisisMapInnerProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -202,6 +206,7 @@ export default function CrisisMapInner({
       color: "#22c55e",
       enabled: layerVisibility.internal,
       count: markers.length,
+      error: false,
     },
     {
       id: "usgs",
@@ -209,6 +214,7 @@ export default function CrisisMapInner({
       color: "#f97316",
       enabled: layerVisibility.usgs,
       count: usgsMarkers.length,
+      error: usgsError,
     },
     {
       id: "gdacs",
@@ -216,6 +222,7 @@ export default function CrisisMapInner({
       color: "#ef4444",
       enabled: layerVisibility.gdacs,
       count: gdacsMarkers.length,
+      error: gdacsError,
     },
   ]
 

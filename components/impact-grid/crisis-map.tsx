@@ -56,8 +56,8 @@ export function CrisisMap({
   showExternalFeeds = true,
 }: CrisisMapProps) {
   // Fetch external data feeds
-  const { markers: usgsMarkers } = useUsgsEarthquakes()
-  const { markers: gdacsMarkers } = useGdacsDisasters()
+  const { markers: usgsMarkers, isError: usgsError } = useUsgsEarthquakes()
+  const { markers: gdacsMarkers, isError: gdacsError } = useGdacsDisasters()
 
   // Combine external markers
   const externalMarkers = externalMarkersProp ?? [
@@ -112,6 +112,8 @@ export function CrisisMap({
           focusId={focusId}
           onMarkerClick={onMarkerClick}
           onViewMission={onViewMission}
+          usgsError={usgsError}
+          gdacsError={gdacsError}
         />
 
         {showLegend && (

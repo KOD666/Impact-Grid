@@ -9,7 +9,7 @@ const fetcher = (url: string) => fetch(url).then(res => res.json())
 // ---------------------------------------------------------------------------
 
 const USGS_URL =
-  "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_7days.geojson"
+  "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson"
 
 export type ExternalUrgency = "critical" | "high" | "medium"
 
@@ -168,58 +168,51 @@ function geometryCenter(geom?: GdacsEvent["geometry"]): [number, number] | null 
   return null
 }
 
+interface GdacsEventFromApi {
+  title: string
+  link: string
+  pubDate: string
+  alertLevel: string
+  country: string
+  lat: number | null
+  lon: number | null
+}
+
 export function useGdacsDisasters() {
-  const { data, error, isLoading } = useSWR<GdacsResponse>(
+  const { data, error, isLoading } = useSWR<{ events: GdacsEventFromApi[]; cached?: boolean }>(
     "gdacs-events",
     () => fetch("/api/gdacs").then((r) => r.json()),
     { refreshInterval: 600000, revalidateOnFocus: false },
   )
 
-  // GDACS responses come in various shapes. Normalize.
-  const features: Array<{ properties: GdacsEvent; geometry?: GdacsEvent["geometry"] }> = (() => {
-    if (!data) return []
-    if (Array.isArray((data as GdacsResponse).features)) {
-      return (data as GdacsResponse).features as Array<{
-        properties: GdacsEvent
-        geometry?: GdacsEvent["geometry"]
-      }>
-    }
-    const inner = (data as GdacsResponse).data
-    if (inner && !Array.isArray(inner) && Array.isArray(inner.features)) {
-      return inner.features
-    }
-    if (Array.isArray(inner)) {
-      return inner.map((p) => ({ properties: p }))
-    }
-    if (Array.isArray((data as GdacsResponse).events)) {
-      return (data as GdacsResponse).events!.map((p) => ({ properties: p }))
-    }
-    return []
-  })()
-
   const markers: ExternalMarker[] = []
-  features.forEach((f, idx) => {
-    const p = f.properties ?? {}
-    const center = geometryCenter(f.geometry) ?? parseBboxCenter(p.bbox)
-    if (!center) return
-    const urgency = gdacsAlertToUrgency(p.alertlevel)
-    const typeKey = (p.eventtype ?? "").toUpperCase()
-    const typeName = GDACS_TYPE_NAMES[typeKey] ?? typeKey ?? "Disaster"
-    markers.push({
-      id: `gdacs_${p.eventid ?? idx}`,
-      source: "gdacs",
-      title: p.name ? `${typeName}: ${p.name}` : typeName,
-      lat: center[0],
-      lng: center[1],
-      urgency,
-      markerColor: "#ef4444", // red for GDACS
-      category: typeName.toLowerCase(),
-      detail: p.alertlevel
-        ? `Alert: ${p.alertlevel.toUpperCase()}`
-        : undefined,
-      timestamp: p.fromdate,
+
+  if (data?.events) {
+    data.events.forEach((event, idx) => {
+      if (event.lat === null || event.lon === null) return
+      
+      const urgency = gdacsAlertToUrgency(event.alertLevel)
+      const markerColor = event.alertLevel?.toLowerCase() === "red" 
+        ? "#ef4444"
+        : event.alertLevel?.toLowerCase() === "orange"
+        ? "#f97316"
+        : "#22c55e"
+      
+      markers.push({
+        id: `gdacs_${idx}`,
+        source: "gdacs",
+        title: event.title,
+        lat: event.lat,
+        lng: event.lon,
+        urgency,
+        markerColor,
+        category: "disaster",
+        detail: event.alertLevel ? `Alert: ${event.alertLevel.toUpperCase()}` : undefined,
+        timestamp: event.pubDate,
+        url: event.link,
+      })
     })
-  })
+  }
 
   return { markers, isLoading, isError: Boolean(error) }
 }

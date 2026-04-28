@@ -47,6 +47,54 @@ interface GdacsEvent {
   lon: number | null
 }
 
+const FALLBACK_EVENTS: GdacsEvent[] = [
+  {
+    title: "Typhoon - Philippines",
+    link: "https://www.gdacs.org",
+    pubDate: new Date().toISOString(),
+    alertLevel: "Red",
+    country: "Philippines",
+    lat: 14.5995,
+    lon: 120.9842,
+  },
+  {
+    title: "Earthquake - Turkey/Syria Border",
+    link: "https://www.gdacs.org",
+    pubDate: new Date().toISOString(),
+    alertLevel: "Orange",
+    country: "Turkey",
+    lat: 37.2263,
+    lon: 35.7845,
+  },
+  {
+    title: "Drought - East Africa",
+    link: "https://www.gdacs.org",
+    pubDate: new Date().toISOString(),
+    alertLevel: "Orange",
+    country: "Kenya",
+    lat: -1.2921,
+    lon: 36.8219,
+  },
+  {
+    title: "Flooding - Bangladesh",
+    link: "https://www.gdacs.org",
+    pubDate: new Date().toISOString(),
+    alertLevel: "Yellow",
+    country: "Bangladesh",
+    lat: 23.6850,
+    lon: 90.3563,
+  },
+  {
+    title: "Wildfire - California",
+    link: "https://www.gdacs.org",
+    pubDate: new Date().toISOString(),
+    alertLevel: "Red",
+    country: "United States",
+    lat: 37.7749,
+    lon: -122.4194,
+  },
+]
+
 function parseRssXml(xml: string): GdacsEvent[] {
   const events: GdacsEvent[] = []
   const itemBlocks = xml.match(/<item>([\s\S]*?)<\/item>/g) ?? []
@@ -86,35 +134,38 @@ function parseRssXml(xml: string): GdacsEvent[] {
 
 export async function GET() {
   try {
+    console.log("[GDACS] Fetching from:", GDACS_RSS_URL)
     const response = await fetch(GDACS_RSS_URL, {
       next: { revalidate: 300 },
       headers: { "User-Agent": "ImpactGrid/1.0" },
     })
 
     if (!response.ok) {
-      console.error(
-        `[GDACS] HTTP error: ${response.status} ${response.statusText}`,
+      console.warn(
+        `[GDACS] HTTP error: ${response.status} ${response.statusText}, using fallback`,
       )
-      return NextResponse.json({ events: MOCK_EVENTS, cached: true })
+      return NextResponse.json({ events: FALLBACK_EVENTS, cached: true })
     }
 
     const xml = await response.text()
     console.log(
-      `[GDACS] Raw XML (first 500 chars): ${xml.substring(0, 500)}...`,
+      `[GDACS] Raw XML length: ${xml.length}, first 300 chars: ${xml.substring(0, 300)}...`,
     )
 
     const events = parseRssXml(xml)
+    console.log(`[GDACS] Parsed ${events.length} events`)
+    
     if (events.length === 0) {
-      console.warn("[GDACS] No events parsed, returning mock data")
-      return NextResponse.json({ events: MOCK_EVENTS, cached: true })
+      console.warn("[GDACS] No events parsed, using fallback")
+      return NextResponse.json({ events: FALLBACK_EVENTS, cached: true })
     }
 
-    return NextResponse.json({ events })
+    return NextResponse.json({ events, cached: false })
   } catch (error) {
     console.error(
       "[GDACS] Fetch failed:",
       error instanceof Error ? error.message : String(error),
     )
-    return NextResponse.json({ events: MOCK_EVENTS, cached: true })
+    return NextResponse.json({ events: FALLBACK_EVENTS, cached: true })
   }
 }
