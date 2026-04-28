@@ -71,27 +71,27 @@ export function TaskOrderCard({
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
-        <span className="font-mono text-xs text-[var(--tactical-orange)] flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-[var(--tactical-orange)]" />
-          {priority}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30 gap-2 min-w-0">
+        <span className="font-mono text-xs text-[var(--tactical-orange)] flex items-center gap-2 truncate">
+          <span className="w-1.5 h-1.5 bg-[var(--tactical-orange)] flex-shrink-0" />
+          <span className="truncate">{priority}</span>
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {isUnassigned && (
-            <span className="font-mono text-[10px] px-1.5 py-0.5 bg-amber-600/20 text-amber-400 border border-amber-500/30 rounded-sm">
+            <span className="font-mono text-[10px] px-1.5 py-0.5 bg-amber-600/20 text-amber-400 border border-amber-500/30 rounded-sm whitespace-nowrap">
               UNASSIGNED
             </span>
           )}
-          <span className={cn("font-mono text-[10px]", statusColors[status])}>
+          <span className={cn("font-mono text-[10px] whitespace-nowrap", statusColors[status])}>
             {status}
           </span>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4">
-        <h3 className="font-mono text-base font-bold tracking-wide mb-2">{title}</h3>
-        <p className="font-mono text-xs text-muted-foreground leading-relaxed line-clamp-2">
+      <div className="p-4 min-w-0">
+        <h3 className="font-mono text-base font-bold tracking-wide mb-2 line-clamp-2 break-words">{title}</h3>
+        <p className="font-mono text-xs text-muted-foreground leading-relaxed line-clamp-2 break-words">
           {description}
         </p>
 

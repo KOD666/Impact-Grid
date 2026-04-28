@@ -320,7 +320,7 @@ export default function MissionsPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                         {activeMissions.map((mission) => (
                           <TaskOrderCard
                             key={mission.id}
@@ -358,7 +358,7 @@ export default function MissionsPage() {
                     </div>
 
                     {isLoading ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                         {[0, 1, 2, 3].map((i) => (
                           <Skeleton key={i} className="h-56 w-full" />
                         ))}
@@ -368,7 +368,7 @@ export default function MissionsPage() {
                         No pending missions. All task orders have been deployed.
                       </p>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                         {pendingMissions.map((mission, index) => {
                           const isUnassigned = !mission.assigned_volunteers || mission.assigned_volunteers.length === 0
                           return (
