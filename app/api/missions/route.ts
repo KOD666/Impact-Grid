@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server"
 import { dataStore } from "@/lib/data-store"
 import { matchVolunteers } from "@/lib/ai-processing"
-import type { IntelStreamEntry } from "@/lib/types"
+import type { IntelStreamEntry, Mission } from "@/lib/types"
 
 // GET all missions
 export async function GET() {
@@ -40,6 +40,46 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { action, missionId, volunteerId } = body
     const supabase = isSupabaseConfigured() ? await createClient() : null
+
+    if (action === "create") {
+      const { mission: missionData } = body
+      if (!missionData) {
+        return NextResponse.json(
+          { success: false, error: "Missing mission data" },
+          { status: 400 },
+        )
+      }
+
+      const newMission: Mission = {
+        id: missionData.id || `MSN_${Date.now()}`,
+        title: missionData.title || "Untitled Mission",
+        location: missionData.location || "Unknown",
+        category: missionData.category || "other",
+        volunteers_required: missionData.volunteers_required ?? 1,
+        time_estimate: missionData.time_estimate || "TBD",
+        urgency: missionData.urgency || "medium",
+        status: "pending",
+        description: missionData.description || "",
+        created_at: new Date().toISOString(),
+        assigned_volunteers: [],
+        source_reports: [],
+        coordinates: missionData.coordinates,
+      }
+
+      if (supabase) {
+        const { data, error } = await supabase
+          .from("missions")
+          .insert(newMission)
+          .select()
+          .single()
+        if (!error && data) {
+          return NextResponse.json({ success: true, data })
+        }
+      }
+
+      const created = dataStore.addMission(newMission)
+      return NextResponse.json({ success: true, data: created })
+    }
 
     if (action === "deploy") {
       // Deploy mission - match and assign volunteers

@@ -1,226 +1,154 @@
-# ImpactGrid - Demo Script for Jury Presentation
+# ImpactGrid — Screen Recording Demo Script
 
-This guide walks you through demonstrating ImpactGrid to the jury. Follow this sequence to showcase the platform's key features effectively.
-
----
-
-## START HERE: Dashboard Overview
-
-**URL:** `/` (Home Page)
-
-### What to Show:
-1. **Point out the overall layout**
-   - Sidebar navigation on the left with all major sections
-   - Top navigation bar with search, notifications, and settings
-   - Main dashboard with real-time metrics
-
-2. **Highlight the metrics cards at the top**
-   - Total missions count
-   - Volunteer roster size
-   - Active alerts
-   - Success rate percentage
-
-3. **Show the Crisis Map**
-   - Explain: "This is a geospatial visualization of all active crisis points"
-   - Markers show report locations with urgency indicators
-   - Click a marker to see details
-
-4. **Scroll to Live Intel Stream**
-   - Explain: "Real-time intelligence feed from field operators"
-   - Different payload types are color-coded (INFO, WARN, ALERT)
+Follow this sequence exactly. Each section is one continuous recording segment. Keep cursor movements deliberate and pause 1–2 seconds on anything you want the viewer to read.
 
 ---
 
-## DEMO 1: Search & Filter Intel Stream
+## SEGMENT 1: Dashboard Overview (30 sec)
 
-### Steps:
-1. **Click on the search bar** in the top navigation
-2. **Type a search term** (e.g., "supply" or "alert")
-3. **Show the results count badge** appearing next to the input
-4. **Point out** that the intel stream table filters in real-time
-5. **Press Escape or click X** to clear the filter
+**URL:** `/`
 
-**Say:** "Operators can quickly filter through thousands of intel entries to find relevant information."
-
----
-
-## DEMO 2: Notifications Panel
-
-### Steps:
-1. **Click the bell icon** in the top navigation
-2. **Show the drawer sliding in** from the right
-3. **Point out:**
-   - Alert items with severity icons
-   - Confidence percentage for predictions
-   - Timestamps
-4. **Click outside or press Escape** to close
-
-**Say:** "The predictive alerts system uses ML models to forecast potential crisis events before they escalate."
+1. Open the app. Let the dashboard fully load.
+2. Pan across the top metrics row — point out Total Missions, Volunteers, Active Alerts.
+3. Hover over the crisis map markers briefly.
+4. Scroll down to the Live Intel Stream — let it sit for 2 seconds so the viewer sees the feed.
+5. Point out the Deploy Response bar at the bottom (grayed out, no pending changes).
 
 ---
 
-## DEMO 3: Settings Panel
+## SEGMENT 2: Role Switcher (20 sec)
 
-### Steps:
-1. **Click the gear icon** in the top navigation
-2. **Show the dropdown menu**
-3. **Toggle "Map Layer Density"** between All and Critical
-4. **Toggle "Intel Stream"** between Live and Paused
-5. **Toggle "Marker Labels"** On/Off
-6. **Close by clicking outside**
+**URL:** any page (TopNav is always visible)
 
-**Say:** "Settings are persisted locally, so operators can customize their workspace preferences."
+1. Click the role indicator in the top-right navigation bar (shows current role: COMMANDER).
+2. Show the dropdown: Commander / Coordinator / Volunteer.
+3. Select **Volunteer** — watch the Deploy Response bar disappear from the bottom.
+4. Observe the GDACS link disappear from the sidebar.
+5. Switch back to **Commander**.
+
+**Say:** "Three roles — Commander, Coordinator, Volunteer — each with different access to create, deploy, and manage resources."
 
 ---
 
-## DEMO 4: Personnel Management
+## SEGMENT 3: Notification Bell Fix (15 sec)
+
+**URL:** any page
+
+1. Click the bell icon in the top navigation.
+2. Show the notification panel dropping down — it should render on top of all content, not clipped by the sidebar.
+3. Click outside to dismiss.
+4. Click the gear icon — show the settings panel opening on top of content.
+5. Toggle a setting (e.g., Map Layer Density).
+6. Click outside to dismiss.
+
+**Say:** "Both panels are now fixed-position at z-index 9999, no more clipping behind the sidebar."
+
+---
+
+## SEGMENT 4: Personnel Management (45 sec)
 
 **URL:** `/personnel`
 
-### Steps:
-1. **Navigate to Personnel** from sidebar
-2. **Show the filter bar:**
-   - Search by name
-   - Filter by availability (Available, Busy, Offline)
-   - Filter by skills dropdown
-   - Sort options
-3. **Select a skill filter** to narrow results
-4. **Show the volunteer cards** with status indicators
-5. **Click "VIEW PROFILE"** on one volunteer
-6. **Show the detailed profile page** with contact info, skills, mission history
-
-**Say:** "Personnel management allows coordinators to quickly find volunteers with specific skills and availability."
+1. Show the volunteer card grid.
+2. Use the filter bar to narrow by "Available" and then by a skill.
+3. Click **SET_OFFLINE** on a volunteer — show the availability dot change.
+4. Click **VIEW_PROFILE** on any volunteer — show the full profile page.
+5. Navigate back.
+6. Click **ASSIGN_MISSION** — show the mission selection dialog, select a mission, confirm.
+7. Show the volunteer card update with the mission badge.
+8. Switch role to **Volunteer**, show the ADD_VOLUNTEER button is now disabled.
+9. Switch back to **Commander**.
+10. Click **ADD_VOLUNTEER**, fill in Name + a skill, submit — show new card appear.
 
 ---
 
-## DEMO 5: Mission Operations
+## SEGMENT 5: Missions Page — Unassigned Badge + Suggest Team (45 sec)
 
 **URL:** `/missions`
 
-### Steps:
-1. **Navigate to Missions** from sidebar
-2. **Show the filter bar:**
-   - Status pills (Active, Pending, Completed)
-   - Urgency pills (Critical, High, Medium, Low)
-   - Category dropdown
-3. **Filter to show "Critical" missions**
-4. **Click on a mission card** to view details
-5. **Show the "DEPLOY VOLUNTEERS" button**
-6. **Explain the assignment workflow**
-
-**Say:** "Missions are prioritized by urgency and can be filtered to help coordinators focus on critical situations first."
+1. Show the missions grid. Point out an **UNASSIGNED** amber badge on a pending mission card.
+2. Point out the **SUGGEST_TEAM** amber button below it.
+3. Click **SUGGEST_TEAM** — the mission detail modal opens.
+4. Scroll to the **SUGGESTED_ALLOCATION** section at the bottom of the modal.
+5. Show the volunteer rows: name, reason pills (Skill Match, Proximity, etc.), ASSIGN button.
+6. Click **ASSIGN** on one volunteer — show the spinner, then the checkmark.
+7. Close the modal.
+8. Point out the **NEW_MISSION** button in the top right.
+9. Click it — show the create mission modal (Title, Location, Priority, Description).
+10. Fill in a title and location, click **CREATE** — show the new card appear in the grid.
 
 ---
 
-## DEMO 6: Logistics Tracking
+## SEGMENT 6: GDACS Live Feed (40 sec)
+
+**URL:** `/gdacs`
+
+> Note: If the live feed is unavailable, the page shows mock events with an amber "Live feed unavailable" banner — that is expected behavior.
+
+1. Navigate to GDACS from the sidebar.
+2. If the amber cached-data banner appears, point it out and explain the graceful fallback.
+3. Show the alert cards: each card has title, country, alert level badge (Red/Orange/Yellow), and coordinates.
+4. Click **CREATE_MISSION** on a Red alert card.
+5. The modal opens — show the pre-filled event title and the allocation preview.
+6. Show the volunteer suggestions with scores.
+7. Fill in a mission title if needed and click **CREATE_MISSION**.
+8. Navigate to `/missions` — show the new mission card has appeared.
+
+**Say:** "GDACS alerts are parsed directly from the UN feed. When the feed is unreachable, the app falls back to cached events and flags it clearly."
+
+---
+
+## SEGMENT 7: Deploy Response (30 sec)
+
+**URL:** `/missions` or `/personnel` (make a change first to enable the bar)
+
+1. Make a change — toggle a volunteer availability or assign a mission.
+2. Point out the Deploy Response bar at the bottom now shows a count badge.
+3. Click **DEPLOY_RESPONSE**.
+4. Watch the 4-step stepper: Mission statuses → Volunteers assigned → Logistics → Alert check.
+5. Each step shows a spinner then a checkmark.
+6. Show the success summary: "X missions activated · Y volunteers assigned".
+7. Click CLOSE — bar resets to zero.
+
+**Say:** "Deploy commits all staged changes in a single atomic batch, writes an audit log entry, and revalidates all SWR caches."
+
+---
+
+## SEGMENT 8: Logistics (20 sec)
 
 **URL:** `/logistics`
 
-### Steps:
-1. **Navigate to Logistics** from sidebar
-2. **Show the stats tiles** at the top (Active tasks, En route, Pending, Delivered)
-3. **Show the map with team markers** and routes
-4. **Point out a task card** with team, destination, ETA
-5. **Click "MARK AS DELIVERED"** on a task
-
-**Say:** "Logistics tracking enables real-time visibility of supply convoys and delivery teams."
+1. Show the stat tiles at the top.
+2. Show the map with team markers and polyline routes.
+3. Point out a task card: team, destination, ETA.
+4. Click **MARK AS DELIVERED** on a task — show it move to Delivered status.
 
 ---
 
-## DEMO 7: AI-Powered Report Analysis (KEY FEATURE)
+## Optional: AI Report Analysis
 
 **URL:** `/reports`
 
-### Steps:
-1. **Navigate to Reports** from sidebar
-2. **Point out the two-column layout**
-   - Left: Submit form
-   - Right: AI analysis output
-
-3. **Enter a sample report:**
-   ```
-   Water supply disrupted in Sector 4-B following infrastructure damage. 
-   Approximately 500 families affected. Local reserves depleted. 
-   Urgent need for water purification equipment and tanker trucks.
-   ```
-
-4. **Set location:** "Sector 4-B, Northern District"
-5. **Set category:** WATER
-6. **Click "ANALYZE_REPORT"**
-7. **Wait for the analysis** (show loading state)
-8. **Walk through the AI output:**
-   - Risk Level badge (color-coded)
-   - Executive Summary
-   - Key Findings (bulleted)
-   - Immediate Actions Required (numbered)
-   - Affected Population
-   - Estimated Resolution Time
-   - Recommended Resources (pill tags)
-
-9. **Click "DOWNLOAD_REPORT"** to generate PDF
-
-**Say:** "Our AI-powered analysis uses Google Gemini to extract structured intelligence from field reports, enabling faster decision-making."
+1. Paste a sample field report.
+2. Click **ANALYZE_REPORT** — show loading state.
+3. Walk through: Risk Level, Executive Summary, Key Findings, Immediate Actions, Resources.
+4. Click **DOWNLOAD_REPORT** for PDF export.
 
 ---
 
-## DEMO 8: Show Report History
+## Key Talking Points (say at any point)
 
-### Steps:
-1. **Point out the "RECENT_REPORTS" section** below the form
-2. **Click on a previous report** to reload it
-3. **Show that the analysis is also restored**
-
-**Say:** "Reports are stored locally for quick reference and can be re-analyzed or exported at any time."
-
----
-
-## DEMO 9: Analytics Dashboard (Optional)
-
-**URL:** `/analytics`
-
-### Steps:
-1. **Navigate to Analytics** from sidebar
-2. **Show the satellite status panel**
-3. **Point out the terrain visualization**
-4. **Show the Neural Data Engine metrics**
-5. **Point out the Live Data Panel** on the right
-
-**Say:** "The analytics dashboard provides system-wide visibility for high-level operations oversight."
-
----
-
-## CLOSING: Deploy Response
-
-### Steps:
-1. **Point to the "DEPLOY_RESPONSE" button** in the sidebar
-2. **Click it to show the deploy modal**
-3. **Explain:** "This commits all pending changes to the database"
-4. **Click Deploy** (or cancel)
-
-**Say:** "The deploy system batches all coordinator actions and commits them atomically, ensuring data consistency across the platform."
-
----
-
-## Key Talking Points
-
-1. **Real-time Operations:** All data syncs in real-time between field operators and coordinators
-
-2. **AI Integration:** Gemini-powered analysis turns unstructured field reports into actionable intelligence
-
-3. **Graceful Degradation:** Platform works with or without database connection (falls back to in-memory store)
-
-4. **Mobile Responsive:** Sidebar collapses on mobile, all views adapt to smaller screens
-
-5. **Accessibility:** Full keyboard navigation, ARIA labels, screen reader support
-
-6. **PDF Export:** Professional report generation for stakeholder communication
+- **Role-Based Access:** Three roles with gates on every destructive or privileged action — no hard-coded user, switchable at runtime.
+- **Smart Allocation:** Haversine distance + skill match + urgency multiplier produces a ranked volunteer shortlist in milliseconds, client-side, no API call needed.
+- **GDACS Integration:** Live UN disaster feed parsed from RSS XML. Graceful fallback to mock data with a clear UI signal — no silent failures.
+- **Atomic Deploy:** All staged changes (mission statuses, volunteer assignments, logistics) committed in a single POST with audit trail.
+- **Overlay Fix:** Notification bell and settings panel use `position: fixed` at z-index 9999, confirmed to render above sidebar and map layers on all pages.
 
 ---
 
 ## Troubleshooting
 
-- **If AI analysis shows "estimated summary":** The Gemini API key is not configured. This is expected in demo environments - the mock data demonstrates the feature functionality.
-
-- **If data looks empty:** Click "DEPLOY_RESPONSE" in the sidebar to refresh, or reload the page.
-
-- **If map doesn't load:** The map uses sample coordinates. Ensure the page has fully loaded.
+- **GDACS page shows amber banner:** Expected. Live feed may be blocked in sandbox — mock events show full flow.
+- **Suggest Team shows no volunteers:** Data store may be empty. Add a volunteer on `/personnel` first, or reload.
+- **Deploy bar stays grayed out:** Make at least one change (toggle availability, assign a mission) to queue a pending change.
+- **Map does not load:** Hard refresh the page. Leaflet requires client-side only — the dynamic import handles SSR but the first paint can lag.

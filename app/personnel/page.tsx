@@ -1,7 +1,7 @@
 'use client'
 
 import { useContext, useState, useCallback } from 'react'
-import { AppContext } from '@/components/providers/app-provider'
+import { AppContext, useAppContext } from '@/components/providers/app-provider'
 import { Sidebar } from '@/components/impact-grid/sidebar'
 import { TopNav } from '@/components/impact-grid/top-nav'
 import { DeployResponseBar } from '@/components/impact-grid/deploy-response-bar'
@@ -12,6 +12,8 @@ import type { Volunteer } from '@/lib/types'
 
 export default function PersonnelPage() {
   const { volunteers } = useContext(AppContext)!
+  const { role } = useAppContext()
+  const canAddVolunteer = role === "commander" || role === "coordinator"
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -97,12 +99,22 @@ export default function PersonnelPage() {
               {volunteers?.length || 0} team {volunteers?.length === 1 ? 'member' : 'members'} · {availableCount} available · {busyCount} on mission
             </p>
           </div>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="px-4 py-2 bg-[var(--tactical-orange)] text-black font-mono text-sm tracking-wider rounded-sm hover:bg-[var(--tactical-orange)]/90 transition-all"
-          >
-            {showAddForm ? 'CANCEL' : 'ADD_VOLUNTEER'}
-          </button>
+          {canAddVolunteer ? (
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="px-4 py-2 bg-[var(--tactical-orange)] text-black font-mono text-sm tracking-wider rounded-sm hover:bg-[var(--tactical-orange)]/90 transition-all"
+            >
+              {showAddForm ? 'CANCEL' : 'ADD_VOLUNTEER'}
+            </button>
+          ) : (
+            <button
+              disabled
+              title="Commander or Coordinator access required"
+              className="px-4 py-2 bg-muted text-muted-foreground font-mono text-sm tracking-wider rounded-sm cursor-not-allowed"
+            >
+              ADD_VOLUNTEER
+            </button>
+          )}
         </div>
       </div>
 

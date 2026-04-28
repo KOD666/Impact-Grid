@@ -2,302 +2,181 @@
 
 ## Overview
 
-Complete implementation of the ImpactGrid Crisis Response Platform with all requested features. The application is fully functional, builds successfully, and runs locally without errors.
+Complete implementation of the ImpactGrid Crisis Response Platform including all original features plus a full second phase: role-based access control, smart volunteer allocation, GDACS live feed integration, missions page enhancements, and nav overlay fixes.
 
 ---
 
 ## What Was Built
 
-### ✅ Personnel Page (`/personnel`)
+### Phase 1 — Core Platform
 
-**Volunteer Card Grid:**
-- 2-column desktop layout, 1-column mobile responsive
-- Each card displays:
-  - Avatar circle with initials + availability dot (green/orange/gray)
-  - Name, location, and skill pills
-  - Current mission badge or "Unassigned" text
-  - "Joined [Month Day, Year]" in humanized format
+#### Personnel Page (`/personnel`)
+- 2-column desktop / 1-column mobile volunteer card grid
+- Each card: avatar with availability dot, name, location, skill pills, current mission badge
+- Four working buttons per card: ASSIGN_MISSION, VIEW_PROFILE, SET_AVAILABLE/SET_OFFLINE, REMOVE
+- Add Volunteer slide-in panel with validation
+- Inline remove confirmation overlay
+- Role gate: ADD_VOLUNTEER button disabled for volunteer role
 
-**Four Working Buttons Per Card:**
+#### Personnel Detail Page (`/personnel/[id]`)
+- Contact information, skills & qualifications, mission history, current status
+- Loading skeletons while fetching
 
-1. **ASSIGN_MISSION** – Opens dialog listing all open missions
-   - User selects mission from table
-   - Confirms → writes to AppContext + calls `PATCH /api/volunteers`
-   - Updates volunteer's `current_mission` field
-
-2. **VIEW_PROFILE** – Navigate to `/personnel/[id]`
-   - Shows full volunteer details
-   - Contact email & phone
-   - Skills list with clearance level
-   - Mission history array (recent 5)
-   - Current assignment status
-   - Loading skeletons while fetching
-
-3. **SET_AVAILABLE/SET_OFFLINE** – Availability toggle
-   - Checkbox that flips `available` ↔ `offline`
-   - Immediately updates UI dot color
-   - Triggers `PATCH /api/volunteers` with new availability
-   - Queues change to `pendingChanges` for deploy
-
-4. **REMOVE** – Delete volunteer with inline confirmation
-   - Shows one-line confirmation modal overlay (not a full dialog)
-   - "Remove [Name] from roster?" with CONFIRM/CANCEL buttons
-   - On confirm → calls `DELETE /api/volunteers/[id]`
-   - Removes from roster immediately
-
-**Add Volunteer Slide-In Panel:**
-- Fields: Name* (required), Role, Location, Skills (comma-separated), Available toggle
-- Validation messages in conversational tone
-- On submit → creates new volunteer, adds to data store, updates AppContext
-- Panel collapses after successful add
-
-**Empty State:**
-- Shows when no volunteers exist
-- "No volunteers added yet. Invite your first team member to get started."
-- Button to add first volunteer
-
----
-
-### ✅ Personnel Detail Page (`/personnel/[id]`)
-
-**Layout:**
-- Header with avatar, name, location, status dot, back button
-- Four information sections:
-
-1. **CONTACT_INFORMATION**
-   - Email & phone (if provided)
-   - Fallback: "No contact information provided"
-
-2. **SKILLS_QUALIFICATIONS**
-   - List of skill pills
-   - Clearance level badge
-   - Fallback: "No skills listed"
-
-3. **MISSION_HISTORY**
-   - Stats: Missions Completed, Current Assignment
-   - Recent missions list (5 most recent)
-   - Current assignment shown as colored badge
-   - Fallback: "No mission history yet"
-
-4. **STATUS**
-   - Availability dot with text
-   - "Available for deployment" / "On mission" / "Offline"
-
----
-
-### ✅ Deploy Response Feature
-
-**Sticky Bar at Bottom:**
-- Shows "DEPLOY RESPONSE" button
-- Disabled (grayed out) when `pendingChanges` is empty
-- Shows pending changes count: "DEPLOY RESPONSE [3]"
-- Tooltip on hover when disabled: "No changes to deploy"
-
-**Deploy Modal (4-Step Stepper):**
-
-1. Opens on button click
-2. Shows 4-step progress:
-   - Step 1: "Updating mission statuses" → pending → active (spinner) → done (checkmark) [+800ms]
-   - Step 2: "Assigning volunteers" [+800ms]
-   - Step 3: "Pushing logistics targets" [+800ms]
-   - Step 4: "Running alert check" [+800ms]
-
-3. **On Click "START_DEPLOY":**
-   - POST to `/api/deploy` with `pendingChanges` payload
-   - API processes atomically:
-     - Updates all missions to `status: "active"`
-     - Marks volunteers as `availability: "busy"` + assigns `current_mission`
-     - Updates logistics task status & location
-     - Runs predictive alert recheck
-     - Creates `DeploymentLog` entry with timestamp & summary
-     - Adds entry to intel stream
-     - All SWR caches are revalidated
-
-4. **On Success:**
-   - Shows green checkmark badge
-   - Displays summary: "3 missions activated · 5 volunteers assigned"
-   - Shows CLOSE button
-   - Clears `pendingChanges` after commit
-
-5. **On Error:**
-   - Shows red error badge
-   - Displays error message
-   - User can retry or close
-
----
-
-### ✅ Additional Features Implemented
+#### Deploy Response
+- Sticky bar at bottom, disabled when no pending changes
+- 4-step animated stepper modal (missions → volunteers → logistics → alert check)
+- POST `/api/deploy` commits all pending changes atomically
+- Audit log entry written on success
+- Role gate: hidden entirely for volunteer role
 
 #### Dashboard (`/`)
-- Real-time Leaflet map with incident markers
-- Mission stats and resource matrix
-- Live intel stream
-- Predictive alerts panel
-- Deploy Response button (floating bottom-right)
+- Leaflet map with incident markers
+- Mission stats, resource matrix, live intel stream, predictive alerts
 
 #### Missions (`/missions`)
-- Grid of mission cards with task order display
-- "VIEW_DETAILS" button opens modal with full mission info
-- "DEPLOY" button auto-matches and assigns volunteers
-- Shared Leaflet map shows all mission locations
-- Click mission card → navigate to `/missions/[id]`
-- Detail page shows assigned volunteers, source reports, and full context
+- Grid of task order cards with filter bar
+- Mission detail modal with assigned volunteers and source reports
+- Unassigned badge on pending cards with no volunteers
+- SUGGEST_TEAM button on unassigned pending cards
+- NEW_MISSION button (commander/coordinator only) — opens inline create modal
 
 #### Logistics (`/logistics`)
-- Real-time task queue sorted by urgency
-- Team marker on Leaflet map with polyline routes to destinations
-- Live ETA countdown
-- Status tracking: pending → en_route → delivered
-- Task detail cards show team location and destination coordinates
-
-#### Global Infrastructure
-- **AppContext**: Manages volunteers, missions, pending changes, deploy state
-- **Data Store**: In-memory CRUD for all entities
-- **API Routes**: All endpoints fully wired (`/api/missions`, `/api/volunteers`, `/api/logistics`, `/api/deploy`)
-- **Leaflet Maps**: CrisisMap component with dynamic imports (no SSR issues)
-- **SWR**: Auto-fetching and caching with manual revalidation after deploy
+- Task queue sorted by urgency
+- Leaflet map with team marker and polyline routes
+- Live ETA countdown, status tracking
 
 ---
 
-## Code Quality & Standards
+### Phase 2 — Role System, Allocation, GDACS & Fixes
 
-✅ **TypeScript**: Strict mode, full type coverage  
-✅ **React Best Practices**: Components, hooks, context, memoization  
-✅ **Accessibility**: Semantic HTML, ARIA labels, keyboard navigation  
-✅ **Responsive Design**: Mobile-first, flexbox layouts  
-✅ **Error Handling**: Try-catch blocks, user-friendly messages  
-✅ **Code Organization**: Separated concerns, reusable components  
-✅ **Performance**: Dynamic imports for maps, SWR caching, memoization  
+#### Role Switcher (AppContext + TopNav)
+- `AppRole` type exported from `app-provider.tsx`: `"commander" | "coordinator" | "volunteer"`
+- `role` and `setRole` added to `AppContextValue` and wired into context state
+- TopNav dropdown in header to switch roles at runtime
+- Role gates applied:
+  - Deploy Response Bar: hidden for volunteer
+  - GDACS nav link in sidebar: hidden for volunteer
+  - ADD_VOLUNTEER button on personnel page: disabled for volunteer
+  - NEW_MISSION button on missions page: hidden for volunteer
+  - Create Mission button on GDACS page: hidden for volunteer
+
+#### Smart Allocation (`/lib/allocate.ts`)
+- Pure TypeScript, no runtime dependencies
+- `suggestVolunteers(volunteers, options)` function:
+  - Haversine formula for geographic distance scoring
+  - Skill match boost: +30 points per matching skill
+  - Urgency multiplier: critical ×1.5, high ×1.2
+  - Availability filter: skips busy volunteers
+  - Returns sorted array of `{ volunteerId, volunteerName, score, reasons[] }`
+- Options interface: `coordinates`, `requiredSkills`, `urgency`, `volunteersNeeded`
+- Handles both `available` and `availability` field naming variants defensively
+
+#### GDACS Feed (`/api/gdacs/route.ts` + `/app/gdacs/page.tsx`)
+- API route fetches `https://www.gdacs.org/xml/rss.xml` with a 5-minute revalidate
+- Parses raw XML: extracts `<item>` tags, CDATA title/country, `gdacs:alertlevel`, `geo:lat`/`geo:long`
+- On any failure (HTTP error, network, empty parse): falls back to 3 hardcoded mock events and logs the error
+- Returns `{ events, cached: true }` when using fallback data
+- GDACS page (`/app/gdacs/page.tsx`):
+  - Fetches on mount, shows amber "Live feed unavailable" banner when `cached: true`
+  - Alert cards color-coded by alert level (Red/Orange/Yellow)
+  - Each card has a CREATE_MISSION button that opens an inline allocation preview modal
+  - Modal shows suggested volunteers from `suggestVolunteers` with scores and reasons
+  - Create mission form POSTs to `/api/missions` with `action: "create"`
+
+#### Missions Page Enhancements
+- `isUnassigned` badge: amber UNASSIGNED chip in card header when `assigned_volunteers` is empty
+- SUGGEST_TEAM button: appears on unassigned pending cards, calls `suggestVolunteers` and opens the mission detail modal
+- Mission detail modal extended with `suggestedTeam` and `onAssignVolunteer` props:
+  - SUGGESTED_ALLOCATION section renders below assigned volunteers
+  - Each suggestion row shows volunteer name + reason pills + ASSIGN button
+  - ASSIGN button calls `PATCH /api/volunteers/[id]` to set `current_mission` and `availability: "busy"`
+  - Button shows spinner during request, checkmark on success
+- NEW_MISSION inline modal: Title (required), Location, Priority select, Description textarea
+  - Validates title before submit
+  - POSTs to `/api/missions` with `action: "create"`, refreshes SWR caches on success
+
+#### Nav Overlay Fixes
+- Notification bell dropdown: `position: fixed`, `z-index: 9999`, click-outside closes
+- Settings panel: `position: fixed`, `z-index: 9999`, click-outside closes
+- Both panels escape the stacking context of the sidebar and main content area
+
+#### Missions API (`/api/missions/route.ts`)
+- Added `action: "create"` handler: validates body, constructs `Mission` object, writes to Supabase if connected, falls back to in-memory data store
 
 ---
 
-## How to Run Locally
-
-### Prerequisites
-- Node.js 18+
-- pnpm (or npm/yarn)
-
-### Installation
-```bash
-# Navigate to project
-cd /vercel/share/v0-project
-
-# Install dependencies (already done)
-pnpm install
-
-# Run development server
-pnpm run dev
-```
-
-**Open**: http://localhost:3000
-
-### Build & Deploy
-```bash
-# Production build
-pnpm run build
-
-# Start production server (after build)
-pnpm start
-
-# Type check
-pnpm run type-check
-
-# Linting
-pnpm run lint
-```
-
-**Build Status**: ✅ Exit code 0 (successful)  
-**Routes Registered**: 15 pages, 9 API endpoints
-
----
-
-## File Structure
+## File Map (additions and changes from Phase 2)
 
 ```
+/lib
+  allocate.ts              → Pure TS smart allocation with Haversine + skill boost
+
 /app
+  /gdacs
+    page.tsx               → GDACS feed page, alert cards, create-mission modal
+  /missions
+    page.tsx               → + Unassigned badge, Suggest team, New mission button/modal
   /api
-    /deploy                → POST batch deploy + audit log
-    /logistics             → GET/PATCH tasks
-    /missions              → GET/POST/PATCH missions
-    /missions/[id]         → GET single mission
-    /volunteers            → GET/POST/PATCH volunteers
-    /volunteers/[id]       → GET/DELETE individual
-  /logistics               → Logistics page
-  /missions                → Missions grid
-  /missions/[id]           → Mission detail
-  /personnel               → Personnel roster
-  /personnel/[id]          → Volunteer profile
-  /layout.tsx              → Root with AppProvider
-  /page.tsx                → Dashboard
+    /gdacs
+      route.ts             → RSS parse + mock fallback + error logging
+    /missions
+      route.ts             → + action:"create" handler
 
 /components/impact-grid
-  /crisis-map              → Leaflet map wrapper
-  /deploy-response-bar     → Deploy button
-  /deploy-response-modal   → 4-step stepper
-  /volunteer-card          → Roster card
-  /mission-detail-modal    → Mission modal
-  /assign-mission-dialog   → Dialog for assign
+  top-nav.tsx              → Role switcher dropdown, fixed notification bell, fixed settings panel
+  sidebar.tsx              → GDACS nav link (role-gated), Deploy button role-gate
+  deploy-response-bar.tsx  → Hidden for volunteer role
+  task-order-card.tsx      → + isUnassigned badge, showSuggestTeam, onSuggestTeam props
+  mission-detail-modal.tsx → + suggestedTeam panel, onAssignVolunteer wiring, Assign button
 
 /components/providers
-  /app-provider.tsx        → Global state context
-
-/lib
-  /data-store.ts           → In-memory CRUD
-  /types.ts                → TypeScript definitions
+  app-provider.tsx         → AppRole type, role state, setRole, added to context value
 ```
 
 ---
 
-## All Requirements Met
+## All Requirements
 
-| Requirement | Status | Location |
-|------------|--------|----------|
-| Volunteer card grid | ✅ | `/personnel` |
-| 4 working buttons | ✅ | Each volunteer card |
-| View profile page | ✅ | `/personnel/[id]` |
-| Humanized dates | ✅ | "January 3, 2024" format |
-| Availability toggle | ✅ | Checkbox updates API |
-| Remove with confirmation | ✅ | Inline modal |
-| Add volunteer form | ✅ | Slide-in panel |
-| Mission assignment modal | ✅ | Dialog with table |
-| Missions detail page | ✅ | `/missions/[id]` |
-| Logistics page | ✅ | Real tasks + map |
-| Deploy Response button | ✅ | Sticky bar |
-| 4-step stepper modal | ✅ | Deploy animation |
-| Batch API endpoint | ✅ | `/api/deploy` |
-| Audit logging | ✅ | `DeploymentLog` records |
-| Plan.md document | ✅ | Comprehensive guide |
-| Builds locally | ✅ | `pnpm build` → exit 0 |
-
----
-
-## Next Steps (Optional)
-
-1. **Database Integration**: Replace in-memory store with Supabase/Firestore for persistence
-2. **Real-Time Sync**: Add WebSocket support for multi-user collaboration
-3. **Authentication**: Implement user login and role-based access control
-4. **Advanced Filtering**: Add search, filters, and sorting to rosters
-5. **Export Features**: CSV/PDF export of deployment logs and rosters
-6. **Monitoring**: Add Sentry for error tracking in production
-7. **Tests**: Jest + React Testing Library for critical flows
-8. **Mobile App**: React Native version using shared components
+| Feature | Status | Location |
+|---|---|---|
+| Volunteer card grid | Done | `/personnel` |
+| 4 working buttons per card | Done | Each volunteer card |
+| View profile page | Done | `/personnel/[id]` |
+| Availability toggle | Done | PATCH `/api/volunteers` |
+| Remove with confirmation | Done | Inline overlay |
+| Add volunteer form | Done | Slide-in panel |
+| Mission assignment modal | Done | Dialog with table |
+| Missions detail page | Done | `/missions/[id]` |
+| Logistics page | Done | Tasks + map |
+| Deploy Response (4-step) | Done | Sticky bar + modal |
+| Batch API endpoint | Done | `/api/deploy` |
+| Audit logging | Done | DeploymentLog records |
+| Role switcher (3 roles) | Done | AppContext + TopNav dropdown |
+| Role gates on buttons | Done | Personnel, Missions, GDACS, Deploy |
+| Smart allocation (Haversine) | Done | `/lib/allocate.ts` |
+| GDACS feed page | Done | `/app/gdacs/page.tsx` |
+| GDACS mock fallback | Done | `/api/gdacs/route.ts` |
+| GDACS create-mission modal | Done | With allocation preview |
+| Unassigned badge on missions | Done | `task-order-card.tsx` |
+| Suggest Team button | Done | Missions page, opens detail modal |
+| Assign from suggestion | Done | PATCH volunteer in modal |
+| New Mission button/modal | Done | Missions page (role-gated) |
+| Nav overlay z-index fixes | Done | TopNav fixed + z-9999 |
 
 ---
 
-## Final Status
+## Tech Stack
 
-✅ **COMPLETE & READY FOR DEPLOYMENT**
-
-All features implemented, tested, and documented. The application runs smoothly locally and is production-ready for deployment to Vercel or self-hosted servers.
-
-**Build Time**: ~45 seconds  
-**Dev Server**: http://localhost:3000  
-**Bundle Size**: ~2.5MB (Next.js default)  
-**Error Count**: 0  
-**Warning Count**: 0  
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript (strict)
+- **Styling**: Tailwind CSS v4
+- **State**: React Context (AppContext) + SWR for data fetching
+- **Maps**: Leaflet (dynamic import, no SSR)
+- **Database**: In-memory data store (Supabase-ready)
+- **Icons**: Lucide React
 
 ---
 
-*Created: April 27, 2026*  
-*Project: Impact-Grid (KOD666)*  
-*Branch: impactgrid-enhancement*
+*Last updated: April 28, 2026*
+*Project: Impact-Grid (KOD666)*
+*Branch: impactgrid-prototype-fixes*

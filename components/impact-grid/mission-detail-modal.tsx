@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 import { CrisisMap } from "./crisis-map"
 import { useMission } from "@/hooks/use-dashboard"
 import {
@@ -11,13 +12,15 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Clock, MapPin, Users, ArrowUpRight } from "lucide-react"
+import { Clock, MapPin, Users, ArrowUpRight, Loader2, Check } from "lucide-react"
 import type { Volunteer, Report } from "@/lib/types"
 
 interface MissionDetailModalProps {
   missionId: string | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  suggestedTeam?: any[]
+  onAssignVolunteer?: (volunteerId: string, missionId: string) => Promise<void>
 }
 
 const urgencyTone: Record<string, string> = {
@@ -38,9 +41,13 @@ export function MissionDetailModal({
   missionId,
   open,
   onOpenChange,
+  suggestedTeam = [],
+  onAssignVolunteer,
 }: MissionDetailModalProps) {
   const { mission, assignedVolunteers, sourceReports, isLoading } =
     useMission(open ? missionId : null)
+  const [assigningVolunteerId, setAssigningVolunteerId] = useState<string | null>(null)
+  const [assignedIds, setAssignedIds] = useState<Set<string>>(new Set())
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -172,6 +179,62 @@ export function MissionDetailModal({
                 </ul>
               )}
             </section>
+
+            {suggestedTeam.length > 0 && (
+              <section className="p-3 bg-amber-600/10 border border-amber-500/30 rounded-sm">
+                <h3 className="font-mono text-xs font-semibold mb-2 text-amber-400">
+                  SUGGESTED_ALLOCATION
+                </h3>
+                <ul className="space-y-2">
+                  {suggestedTeam.map((suggestion) => (
+                    <li
+                      key={suggestion.volunteerId}
+                      className="flex items-center justify-between p-2.5 border border-amber-500/30 rounded-sm bg-card"
+                    >
+                      <div>
+                        <p className="font-mono text-xs font-semibold">
+                          {suggestion.volunteerName}
+                        </p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {suggestion.reasons.map((reason: string, i: number) => (
+                            <span
+                              key={i}
+                              className="font-mono text-[10px] px-1 py-0.5 bg-muted rounded-sm text-muted-foreground"
+                            >
+                              {reason}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!onAssignVolunteer || !missionId) return
+                          setAssigningVolunteerId(suggestion.volunteerId)
+                          try {
+                            await onAssignVolunteer(suggestion.volunteerId, missionId)
+                            setAssignedIds((prev) => new Set([...prev, suggestion.volunteerId]))
+                          } finally {
+                            setAssigningVolunteerId(null)
+                          }
+                        }}
+                        disabled={assigningVolunteerId !== null || assignedIds.has(suggestion.volunteerId)}
+                        className="px-2 py-1 bg-[var(--tactical-orange)] text-black font-mono text-[10px] tracking-wider rounded-sm hover:bg-[var(--tactical-orange)]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 whitespace-nowrap"
+                      >
+                        {assigningVolunteerId === suggestion.volunteerId ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : assignedIds.has(suggestion.volunteerId) ? (
+                          <>
+                            <Check className="w-3 h-3" /> ASSIGNED
+                          </>
+                        ) : (
+                          "ASSIGN"
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             <section>
               <h3 className="font-mono text-xs font-semibold mb-2">
