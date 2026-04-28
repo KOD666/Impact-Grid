@@ -240,7 +240,7 @@ export function TopNav({ activeTab = "reports", onReportSubmitted, intelStream, 
           {/* Notifications Drawer */}
           <div
             className={cn(
-              "fixed top-0 right-0 h-screen w-80 bg-[#1a1a1a] border-l border-[#333] z-[200] transform transition-transform duration-300 ease-out",
+              "fixed top-0 right-0 h-screen w-80 bg-[#1a1a1a] border-l border-[#333] z-[500] transform transition-transform duration-300 ease-out",
               notificationsOpen ? "translate-x-0" : "translate-x-full"
             )}
           >
@@ -322,7 +322,7 @@ export function TopNav({ activeTab = "reports", onReportSubmitted, intelStream, 
 
           {/* Settings Dropdown */}
           {settingsOpen && (
-            <div className="absolute right-0 top-full mt-2 w-64 bg-[#1a1a1a] border border-[#333] rounded-sm shadow-xl z-50">
+            <div className="fixed right-6 top-16 w-64 bg-[#1a1a1a] border border-[#333] rounded-sm shadow-xl z-[500]">
               <div className="p-2">
                 {/* Map Layer Density */}
                 <div className="flex items-center justify-between p-2 hover:bg-muted/20 rounded-sm">
