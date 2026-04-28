@@ -13,20 +13,28 @@ import {
   Menu,
   X,
   BarChart3,
+  Radio,
 } from "lucide-react"
 import { DeployResponseBar } from "./deploy-response-bar"
+import { useAppContext } from "@/components/providers/app-provider"
 
-const navItems = [
-  { href: "/", label: "DASHBOARD", icon: LayoutDashboard },
-  { href: "/missions", label: "MISSIONS", icon: FileText },
-  { href: "/logistics", label: "LOGISTICS", icon: Truck },
-  { href: "/personnel", label: "PERSONNEL", icon: Users },
-  { href: "/analytics", label: "ANALYTICS", icon: BarChart3 },
-  { href: "/reports", label: "REPORTS", icon: Download },
-]
+const BASE_NAV_ITEMS = [
+  { href: "/", label: "DASHBOARD", icon: LayoutDashboard, roles: ["commander", "coordinator", "volunteer"] },
+  { href: "/missions", label: "MISSIONS", icon: FileText, roles: ["commander", "coordinator", "volunteer"] },
+  { href: "/logistics", label: "LOGISTICS", icon: Truck, roles: ["commander", "coordinator", "volunteer"] },
+  { href: "/personnel", label: "PERSONNEL", icon: Users, roles: ["commander", "coordinator", "volunteer"] },
+  { href: "/analytics", label: "ANALYTICS", icon: BarChart3, roles: ["commander", "coordinator", "volunteer"] },
+  { href: "/reports", label: "REPORTS", icon: Download, roles: ["commander", "coordinator", "volunteer"] },
+  { href: "/gdacs", label: "GDACS FEED", icon: Radio, roles: ["commander", "coordinator"] },
+] as const
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
+  const { role } = useAppContext()
+
+  const navItems = BASE_NAV_ITEMS.filter((item) =>
+    (item.roles as readonly string[]).includes(role)
+  )
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/"
@@ -70,7 +78,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
 
-      {/* Deploy Response Button */}
+      {/* Deploy Response Button — role-gated */}
       <div className="p-4 border-t border-border">
         <DeployResponseBar variant="inline" />
       </div>

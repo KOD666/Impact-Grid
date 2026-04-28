@@ -16,6 +16,9 @@ interface TaskOrderProps {
   isSelected?: boolean
   isDeploying?: boolean
   isActive?: boolean
+  isUnassigned?: boolean
+  onSuggestTeam?: () => void
+  showSuggestTeam?: boolean
 }
 
 export function TaskOrderCard({
@@ -33,6 +36,9 @@ export function TaskOrderCard({
   isSelected,
   isDeploying,
   isActive,
+  isUnassigned,
+  onSuggestTeam,
+  showSuggestTeam,
 }: TaskOrderProps) {
   const statusColors = {
     SYS_AUTH_OK: "text-[var(--tactical-green)]",
@@ -70,9 +76,16 @@ export function TaskOrderCard({
           <span className="w-1.5 h-1.5 bg-[var(--tactical-orange)]" />
           {priority}
         </span>
-        <span className={cn("font-mono text-[10px]", statusColors[status])}>
-          {status}
-        </span>
+        <div className="flex items-center gap-2">
+          {isUnassigned && (
+            <span className="font-mono text-[10px] px-1.5 py-0.5 bg-amber-600/20 text-amber-400 border border-amber-500/30 rounded-sm">
+              UNASSIGNED
+            </span>
+          )}
+          <span className={cn("font-mono text-[10px]", statusColors[status])}>
+            {status}
+          </span>
+        </div>
       </div>
 
       {/* Content */}
@@ -114,6 +127,18 @@ export function TaskOrderCard({
           >
             VIEW_DETAILS
           </button>
+          {showSuggestTeam && onSuggestTeam && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onSuggestTeam()
+              }}
+              className="flex-1 px-3 py-2 bg-amber-600/20 text-amber-400 border border-amber-500/30 font-mono text-[10px] tracking-wider rounded-sm hover:bg-amber-600/30 transition-all"
+            >
+              SUGGEST_TEAM
+            </button>
+          )}
           {!isActive && (
             <button
               onClick={(e) => {

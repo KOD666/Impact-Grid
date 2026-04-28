@@ -24,15 +24,20 @@ interface DeployResponseBarProps {
 }
 
 export function DeployResponseBar({ variant = "floating" }: DeployResponseBarProps) {
-  const { pendingCount, deploy, isDeploying, deployStep } = useAppContext()
+  const { pendingCount, deploy, isDeploying, deployStep, role } = useAppContext()
   const [open, setOpen] = useState(false)
 
-  const disabled = pendingCount === 0 || isDeploying
+  // Volunteer role: hidden entirely
+  if (role === "volunteer") return null
+
+  const isCommander = role === "commander"
+  const isCoordinator = role === "coordinator"
+  const disabled = pendingCount === 0 || isDeploying || isCoordinator
 
   const handleDeploy = async () => {
+    if (!isCommander) return
     setOpen(true)
     await deploy()
-    // auto-close shortly after success
     setTimeout(() => setOpen(false), 1200)
   }
 
@@ -40,7 +45,13 @@ export function DeployResponseBar({ variant = "floating" }: DeployResponseBarPro
     <button
       onClick={handleDeploy}
       disabled={disabled}
-      title={pendingCount === 0 ? "No changes to deploy" : `${pendingCount} pending change${pendingCount === 1 ? "" : "s"}`}
+      title={
+        isCoordinator
+          ? "Commander access required"
+          : pendingCount === 0
+          ? "No changes to deploy"
+          : `${pendingCount} pending change${pendingCount === 1 ? "" : "s"}`
+      }
       className={cn(
         "flex items-center gap-2 px-4 py-2.5 font-mono text-xs font-semibold tracking-wider rounded-sm transition-all border",
         disabled

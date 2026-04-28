@@ -50,6 +50,8 @@ export interface DismissedAlert {
   dismissedAt: number
 }
 
+export type AppRole = "commander" | "coordinator" | "volunteer"
+
 interface AppContextValue {
   volunteers: Volunteer[]
   missions: Mission[]
@@ -79,6 +81,8 @@ interface AppContextValue {
   dismissedAlertIds: string[]
   dismissAlert: (id: string) => void
   isSupabaseConnected: boolean
+  role: AppRole
+  setRole: (role: AppRole) => void
 }
 
 export const AppContext = createContext<AppContextValue | null>(null)
@@ -107,6 +111,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [deployStep, setDeployStep] = useState(0)
   const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([])
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false)
+  const [role, setRole] = useState<AppRole>("commander")
 
   // Load initial data from Supabase with realtime subscriptions
   useEffect(() => {
@@ -426,6 +431,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dismissedAlertIds,
     dismissAlert,
     isSupabaseConnected,
+    role,
+    setRole,
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
