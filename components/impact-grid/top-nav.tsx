@@ -2,10 +2,13 @@
 
 import Link from "next/link"
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Bell, Settings, Search, X, Check, Layers, Pause, Play, Tag, Download } from "lucide-react"
+import { Bell, Settings, Search, X, Check, Layers, Pause, Play, Tag, Download, LogOut } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { ReportSubmissionDialog } from "./report-submission-dialog"
 import { usePredictions } from "@/hooks/use-dashboard"
+import { useRole } from "@/lib/useRole"
+import { createClient } from "@/lib/supabase/client"
 import type { PredictiveAlert } from "@/lib/types"
 
 interface TopNavProps {
@@ -43,15 +46,19 @@ const DEFAULT_SETTINGS: DashboardSettings = {
 }
 
 export function TopNav({ activeTab = "reports", onReportSubmitted, intelStream, onIntelFilter }: TopNavProps) {
+  const router = useRouter()
+  const { role, email, isCommander, isCoordinator, isVolunteer, isLoading } = useRole()
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<number | null>(null)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [hasUnread, setHasUnread] = useState(true)
   const [settings, setSettings] = useState<DashboardSettings>(DEFAULT_SETTINGS)
   
   const settingsRef = useRef<HTMLDivElement>(null)
   const notificationsRef = useRef<HTMLDivElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const { alerts } = usePredictions()
@@ -123,12 +130,16 @@ export function TopNav({ activeTab = "reports", onReportSubmitted, intelStream, 
       if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
         setNotificationsOpen(false)
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false)
+      }
     }
 
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setSettingsOpen(false)
         setNotificationsOpen(false)
+        setUserMenuOpen(false)
       }
     }
 
@@ -151,6 +162,18 @@ export function TopNav({ activeTab = "reports", onReportSubmitted, intelStream, 
     // Navigate to reports page for PDF export
     window.location.href = "/reports"
   }, [])
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      const supabase = createClient()
+      if (supabase) {
+        await supabase.auth.signOut()
+      }
+      router.push('/login')
+    } catch (error) {
+      console.error('[v0] Sign out error:', error)
+    }
+  }, [router])
 
   const tabs = [
     { id: "reports", label: "REPORTS", href: "/reports" },
@@ -449,6 +472,41 @@ export function TopNav({ activeTab = "reports", onReportSubmitted, intelStream, 
 
         {/* New Report */}
         <ReportSubmissionDialog onReportSubmitted={onReportSubmitted} />
+
+        {/* User Pill */}
+        {!isLoading && role && (
+          <div ref={userMenuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-muted border border-border rounded-sm hover:bg-muted/80 transition-colors"
+            >
+              <span className="font-mono text-xs text-foreground">{email}</span>
+              <span className={cn(
+                "px-1.5 py-0.5 text-[9px] font-mono font-semibold rounded-sm",
+                role === 'commander' ? 'bg-blue-500/20 text-blue-400' :
+                role === 'coordinator' ? 'bg-[var(--tactical-yellow)]/20 text-[var(--tactical-yellow)]' :
+                'bg-muted-foreground/20 text-muted-foreground'
+              )}>
+                {role.toUpperCase()}
+              </span>
+            </button>
+
+            {/* User Menu Dropdown */}
+            {userMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-[#1a1a1a] border border-[#333] rounded-sm shadow-xl z-[500]">
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-2 p-3 hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-colors border-b border-[#333]"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="font-mono text-xs">Sign Out</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </header>
   )

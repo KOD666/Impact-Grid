@@ -13,9 +13,11 @@ interface TaskOrderProps {
   onDeploy?: () => void
   onViewDetails?: () => void
   onSelect?: () => void
+  onSuggestTeam?: () => void
   isSelected?: boolean
   isDeploying?: boolean
   isActive?: boolean
+  isUnassigned?: boolean
 }
 
 export function TaskOrderCard({
@@ -30,9 +32,11 @@ export function TaskOrderCard({
   onDeploy,
   onViewDetails,
   onSelect,
+  onSuggestTeam,
   isSelected,
   isDeploying,
   isActive,
+  isUnassigned,
 }: TaskOrderProps) {
   const statusColors = {
     SYS_AUTH_OK: "text-[var(--tactical-green)]",
@@ -66,10 +70,17 @@ export function TaskOrderCard({
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/30">
-        <span className="font-mono text-xs text-[var(--tactical-orange)] flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-[var(--tactical-orange)]" />
-          {priority}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs text-[var(--tactical-orange)] flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-[var(--tactical-orange)]" />
+            {priority}
+          </span>
+          {isUnassigned && (
+            <span className="px-2 py-0.5 bg-[var(--tactical-yellow)]/20 text-[var(--tactical-yellow)] border border-[var(--tactical-yellow)]/30 font-mono text-[9px] font-semibold rounded-sm">
+              UNASSIGNED
+            </span>
+          )}
+        </div>
         <span className={cn("font-mono text-[10px]", statusColors[status])}>
           {status}
         </span>
@@ -114,7 +125,41 @@ export function TaskOrderCard({
           >
             VIEW_DETAILS
           </button>
-          {!isActive && (
+          {onSuggestTeam && isUnassigned && !isActive && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onSuggestTeam()
+              }}
+              className="flex-1 px-3 py-2 border border-[var(--tactical-yellow)] text-[var(--tactical-yellow)] font-mono text-[10px] tracking-wider font-semibold rounded-sm hover:bg-[var(--tactical-yellow)]/10 transition-all"
+            >
+              SUGGEST_TEAM
+            </button>
+          )}
+          {!isActive && !onSuggestTeam && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onDeploy?.()
+              }}
+              disabled={isDeploying}
+              className={cn(
+                "flex-1 px-3 py-2 bg-[var(--tactical-orange)] text-primary-foreground font-mono text-[10px] tracking-wider font-semibold rounded-sm hover:brightness-110 transition-all flex items-center justify-center gap-2",
+                isDeploying && "opacity-70 cursor-not-allowed"
+              )}
+            >
+              {isDeploying ? (
+                <>
+                  <Spinner className="w-3 h-3" />
+                  DEPLOYING...
+                </>
+              ) : (
+                "INITIALIZE_DEPLOYMENT"
+              )}
+            </button>
+          )}
+          {!isActive && onSuggestTeam && (
             <button
               onClick={(e) => {
                 e.stopPropagation()

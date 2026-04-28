@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { cn } from "@/lib/utils"
+import { useRole } from "@/lib/useRole"
 import {
   LayoutDashboard,
   FileText,
@@ -13,6 +14,7 @@ import {
   Menu,
   X,
   BarChart3,
+  Radio,
 } from "lucide-react"
 import { DeployResponseBar } from "./deploy-response-bar"
 
@@ -21,17 +23,27 @@ const navItems = [
   { href: "/missions", label: "MISSIONS", icon: FileText },
   { href: "/logistics", label: "LOGISTICS", icon: Truck },
   { href: "/personnel", label: "PERSONNEL", icon: Users },
+  { href: "/gdacs", label: "GDACS FEED", icon: Radio, requiredRoles: ["commander", "coordinator"] },
   { href: "/analytics", label: "ANALYTICS", icon: BarChart3 },
   { href: "/reports", label: "REPORTS", icon: Download },
 ]
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
+  const { role, isLoading } = useRole()
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/"
     return pathname === href || pathname.startsWith(`${href}/`)
   }
+
+  const visibleItems = useMemo(() => {
+    return navItems.filter(item => {
+      if (!item.requiredRoles) return true
+      if (isLoading || !role) return false
+      return item.requiredRoles.includes(role)
+    })
+  }, [role, isLoading])
 
   return (
     <div className="h-full flex flex-col bg-sidebar">
@@ -48,7 +60,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1" aria-label="Primary">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const active = isActive(item.href)
           return (
             <Link

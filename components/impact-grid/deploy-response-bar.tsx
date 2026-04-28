@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Zap, CheckCircle2, Loader2 } from "lucide-react"
 import { useAppContext } from "@/components/providers/app-provider"
+import { useRole } from "@/lib/useRole"
 import { cn } from "@/lib/utils"
 import {
   Dialog,
@@ -25,9 +26,10 @@ interface DeployResponseBarProps {
 
 export function DeployResponseBar({ variant = "floating" }: DeployResponseBarProps) {
   const { pendingCount, deploy, isDeploying, deployStep } = useAppContext()
+  const { isCommander, isLoading } = useRole()
   const [open, setOpen] = useState(false)
 
-  const disabled = pendingCount === 0 || isDeploying
+  const disabled = pendingCount === 0 || isDeploying || !isCommander
 
   const handleDeploy = async () => {
     setOpen(true)
@@ -36,11 +38,18 @@ export function DeployResponseBar({ variant = "floating" }: DeployResponseBarPro
     setTimeout(() => setOpen(false), 1200)
   }
 
+  const getButtonTitle = () => {
+    if (isLoading) return "Loading..."
+    if (!isCommander) return "Commander access required"
+    if (pendingCount === 0) return "No changes to deploy"
+    return `${pendingCount} pending change${pendingCount === 1 ? "" : "s"}`
+  }
+
   const button = (
     <button
       onClick={handleDeploy}
       disabled={disabled}
-      title={pendingCount === 0 ? "No changes to deploy" : `${pendingCount} pending change${pendingCount === 1 ? "" : "s"}`}
+      title={getButtonTitle()}
       className={cn(
         "flex items-center gap-2 px-4 py-2.5 font-mono text-xs font-semibold tracking-wider rounded-sm transition-all border",
         disabled

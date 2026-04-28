@@ -9,6 +9,7 @@ import { TaskOrderCard } from "@/components/impact-grid/task-order-card"
 import { MissionDetailModal } from "@/components/impact-grid/mission-detail-modal"
 import { DeployResponseBar } from "@/components/impact-grid/deploy-response-bar"
 import { MissionsFilterBar, MissionsEmptyState } from "@/components/impact-grid/missions-filter-bar"
+import { SuggestTeamModal } from "@/components/impact-grid/suggest-team-modal"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   useMissions,
@@ -17,24 +18,28 @@ import {
   deployMission,
 } from "@/hooks/use-dashboard"
 import { useAppContext } from "@/components/providers/app-provider"
+import { useRole } from "@/lib/useRole"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import type { Mission, Volunteer } from "@/lib/types"
 
 export default function MissionsPage() {
   const { missions, isLoading, refresh: refreshMissions } = useMissions()
-  const { volunteers, refresh: refreshVolunteers } = useVolunteers()
+  const { volunteers: volsData, refresh: refreshVolunteers } = useVolunteers()
   const { refresh: refreshDashboard } = useDashboard()
   const { queueMissionStatus } = useAppContext()
+  const { isCommander, isCoordinator } = useRole()
 
   const [deploying, setDeploying] = useState<string | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [suggestTeamMissionId, setSuggestTeamMissionId] = useState<string | null>(null)
+  const [suggestTeamOpen, setSuggestTeamOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mapOpen, setMapOpen] = useState(true)
   const [filteredMissions, setFilteredMissions] = useState<Mission[]>([])
 
   const typedMissions = missions as Mission[]
-  const typedVolunteers = volunteers as Volunteer[]
+  const typedVolunteers = volsData as Volunteer[]
 
   // Handle filtered results from filter bar
   const handleFiltered = useCallback((filtered: Mission[]) => {
@@ -267,7 +272,16 @@ export default function MissionsPage() {
                             equipment={mission.category.toUpperCase()}
                             status={getStatusFromMission(mission)}
                             isSelected={selectedId === mission.id}
+                            isUnassigned={mission.assigned_volunteers?.length === 0}
                             onSelect={() => setSelectedId(mission.id)}
+                            onSuggestTeam={
+                              (isCommander || isCoordinator) && mission.assigned_volunteers?.length === 0
+                                ? () => {
+                                    setSuggestTeamMissionId(mission.id)
+                                    setSuggestTeamOpen(true)
+                                  }
+                                : undefined
+                            }
                             onDeploy={() => {
                               queueMissionStatus(mission.id, "active")
                               handleDeploy(mission.id)
@@ -296,6 +310,17 @@ export default function MissionsPage() {
         missionId={detailId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+      />
+
+      <SuggestTeamModal
+        mission={
+          suggestTeamMissionId
+            ? typedMissions.find(m => m.id === suggestTeamMissionId) || null
+            : null
+        }
+        open={suggestTeamOpen}
+        onOpenChange={setSuggestTeamOpen}
+        volunteers={typedVolunteers}
       />
     </div>
   )
