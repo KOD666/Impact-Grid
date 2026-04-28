@@ -48,12 +48,6 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
-      if (!supabase) {
-        setError('Supabase is not configured. Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are set in your environment.')
-        setLoading(false)
-        return
-      }
-
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
       if (signInError) {
@@ -65,8 +59,7 @@ export default function LoginPage() {
       router.push('/')
       router.refresh()
     } catch (err) {
-      console.error('[v0] Login error:', err)
-      setError('An unexpected error occurred. Please try again.')
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.')
       setLoading(false)
     }
   }
@@ -89,16 +82,13 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient()
-      if (!supabase) {
-        setError('Supabase is not configured. Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are set in your environment.')
-        setLoading(false)
-        return
-      }
-
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo:
+            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
+            `${window.location.origin}/auth/callback`,
           data: { role },
         },
       })
@@ -112,8 +102,7 @@ export default function LoginPage() {
       setSuccess('Account created. Check your email to confirm, then sign in.')
       setLoading(false)
     } catch (err) {
-      console.error('[v0] Sign-up error:', err)
-      setError('An unexpected error occurred. Please try again.')
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.')
       setLoading(false)
     }
   }

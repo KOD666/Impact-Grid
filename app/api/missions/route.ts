@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
 import { dataStore } from "@/lib/data-store"
 import { matchVolunteers } from "@/lib/ai-processing"
 import type { IntelStreamEntry } from "@/lib/types"
@@ -7,22 +7,18 @@ import type { IntelStreamEntry } from "@/lib/types"
 // GET all missions
 export async function GET() {
   try {
-    // Try Supabase first if configured
-    if (isSupabaseConfigured()) {
-      const supabase = await createClient()
-      if (supabase) {
-        const { data: missions, error } = await supabase
-          .from('missions')
-          .select('*')
-          .order('created_at', { ascending: false })
+    // Try Supabase first
+    const supabase = await createClient()
+    const { data: missions, error } = await supabase
+      .from('missions')
+      .select('*')
+      .order('created_at', { ascending: false })
 
-        if (!error && missions) {
-          return NextResponse.json({ success: true, data: missions })
-        }
-      }
+    if (!error && missions) {
+      return NextResponse.json({ success: true, data: missions })
     }
 
-    // Fallback to data store
+    // Fallback to data store if Supabase fails
     const fallbackMissions = dataStore.getMissions()
     return NextResponse.json({ success: true, data: fallbackMissions })
   } catch (error) {
@@ -39,7 +35,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { action, missionId, volunteerId } = body
-    const supabase = isSupabaseConfigured() ? await createClient() : null
+    const supabase = await createClient()
 
     if (action === "deploy") {
       // Deploy mission - match and assign volunteers

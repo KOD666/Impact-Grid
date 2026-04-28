@@ -26,11 +26,6 @@ export function useRole(): RoleInfo {
     const fetchRole = async () => {
       try {
         const supabase = createClient()
-        if (!supabase) {
-          setRoleInfo(prev => ({ ...prev, isLoading: false }))
-          return
-        }
-
         const { data: { session } } = await supabase.auth.getSession()
         
         if (!session) {

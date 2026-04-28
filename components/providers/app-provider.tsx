@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react"
 import { mutate } from "swr"
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import type { Volunteer, Mission } from "@/lib/types"
 
 export interface PendingChanges {
@@ -117,28 +117,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let missionsSubscription: any = null
 
     const loadData = async () => {
-      // If Supabase is not configured, skip to API fallback
-      if (!isSupabaseConfigured() || !supabase) {
-        console.log('[v0] Supabase not configured, falling back to API endpoints')
-        try {
-          const [volRes, msnRes] = await Promise.all([
-            fetch('/api/volunteers'),
-            fetch('/api/missions'),
-          ])
-          if (volRes.ok) {
-            const volData = await volRes.json()
-            setVolunteers(volData.data || [])
-          }
-          if (msnRes.ok) {
-            const msnData = await msnRes.json()
-            setMissions(msnData.data || [])
-          }
-        } catch (error) {
-          console.error('[v0] Failed to load initial data from API:', error)
-        }
-        return
-      }
-
       try {
         // Try Supabase first
         const [volResult, msnResult] = await Promise.all([
