@@ -18,14 +18,14 @@ import {
 } from "@/hooks/use-dashboard"
 import { useAppContext } from "@/components/providers/app-provider"
 import { suggestVolunteers } from "@/lib/allocate"
-import { ChevronDown, ChevronUp } from "lucide-react"
+import { ChevronDown, ChevronUp, Loader2 } from "lucide-react"
 import type { Mission, Volunteer } from "@/lib/types"
 
 export default function MissionsPage() {
   const { missions, isLoading, refresh: refreshMissions } = useMissions()
   const { volunteers, refresh: refreshVolunteers } = useVolunteers()
   const { refresh: refreshDashboard } = useDashboard()
-  const { queueMissionStatus } = useAppContext()
+  const { queueMissionStatus, role } = useAppContext()
 
   const [deploying, setDeploying] = useState<string | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
@@ -34,6 +34,14 @@ export default function MissionsPage() {
   const [mapOpen, setMapOpen] = useState(true)
   const [filteredMissions, setFilteredMissions] = useState<Mission[]>([])
   const [suggestMissionId, setSuggestMissionId] = useState<string | null>(null)
+  const [suggestedTeam, setSuggestedTeam] = useState<any[]>([])
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [createTitle, setCreateTitle] = useState("")
+  const [createLocation, setCreateLocation] = useState("")
+  const [createPriority, setCreatePriority] = useState<"low" | "medium" | "high" | "critical">("medium")
+  const [createDescription, setCreateDescription] = useState("")
+  const [creating, setCreating] = useState(false)
+  const [titleError, setTitleError] = useState("")
 
   const typedMissions = missions as Mission[]
   const typedVolunteers = volunteers as Volunteer[]
@@ -123,16 +131,19 @@ export default function MissionsPage() {
   const handleSuggestTeam = (missionId: string) => {
     const mission = typedMissions.find((m) => m.id === missionId)
     if (!mission) return
-    
+
+    console.log("[v0] Volunteers in context:", typedVolunteers)
+
     const suggestions = suggestVolunteers(typedVolunteers, {
       coordinates: mission.coordinates,
       requiredSkills: [mission.category],
       urgency: mission.urgency,
       volunteersNeeded: mission.volunteers_required,
     })
-    
-    // Log suggestions for now - open detail modal to show
-    console.log('[v0] Suggested team for', mission.title, ':', suggestions)
+
+    console.log("[v0] Suggested team result:", suggestions)
+
+    setSuggestedTeam(suggestions)
     setSuggestMissionId(missionId)
     setDetailId(missionId)
     setDetailOpen(true)
@@ -143,6 +154,74 @@ export default function MissionsPage() {
     if (mission.urgency === "critical") return "SYS_AUTH_OK" as const
     if (mission.urgency === "high") return "LOG_PENDING" as const
     return "SCAN_ACTIVE" as const
+  }
+
+  const handleAssignVolunteer = async (volunteerId: string, missionId: string) => {
+    try {
+      const res = await fetch(`/api/volunteers/${volunteerId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          current_mission: missionId,
+          availability: "busy",
+        }),
+      })
+      if (res.ok) {
+        refreshVolunteers()
+        refreshMissions()
+      }
+    } catch (error) {
+      console.error("[v0] Failed to assign volunteer:", error)
+    }
+  }
+
+  const handleCreateMission = async () => {
+    setTitleError("")
+    if (!createTitle.trim()) {
+      setTitleError("Title is required")
+      return
+    }
+
+    const { role } = useAppContext()
+    const canCreate = role === "commander" || role === "coordinator"
+    if (!canCreate) return
+
+    setCreating(true)
+    try {
+      const res = await fetch("/api/missions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          mission: {
+            title: createTitle,
+            location: createLocation,
+            category: "other",
+            volunteers_required: 3,
+            time_estimate: "TBD",
+            urgency: createPriority,
+            description: createDescription,
+          },
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.data) {
+          refreshMissions()
+          refreshDashboard()
+          setCreateModalOpen(false)
+          setCreateTitle("")
+          setCreateLocation("")
+          setCreatePriority("medium")
+          setCreateDescription("")
+        }
+      }
+    } catch (error) {
+      console.error("[v0] Failed to create mission:", error)
+    } finally {
+      setCreating(false)
+    }
   }
 
   const noFilterResults = typedMissions.length > 0 && filteredMissions.length === 0
@@ -161,6 +240,21 @@ export default function MissionsPage() {
         />
 
         <div className="p-4 md:p-6 space-y-6 pb-24">
+          {/* Header with Create Button */}
+          <div className="flex items-center justify-between">
+            <h1 className="font-mono text-sm font-semibold text-muted-foreground">
+              {typedMissions.length} missions
+            </h1>
+            {role === "commander" || role === "coordinator" ? (
+              <button
+                onClick={() => setCreateModalOpen(true)}
+                className="px-4 py-2 bg-[var(--tactical-orange)] text-black font-mono text-xs tracking-wider rounded-sm hover:bg-[var(--tactical-orange)]/90 transition-all"
+              >
+                NEW_MISSION
+              </button>
+            ) : null}
+          </div>
+
           {/* Filter Bar */}
           {typedMissions.length > 0 && (
             <MissionsFilterBar
@@ -318,10 +412,116 @@ export default function MissionsPage() {
 
       <DeployResponseBar variant="floating" />
 
+      {/* Create Mission Modal */}
+      {createModalOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setCreateModalOpen(false)}
+          />
+          <div className="relative bg-card border border-border rounded-sm w-full max-w-md shadow-lg">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-border bg-muted/30">
+              <h2 className="font-mono text-lg font-bold text-foreground">
+                NEW_MISSION
+              </h2>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              {/* Title Field */}
+              <div>
+                <label className="block font-mono text-xs text-muted-foreground mb-1">
+                  TITLE <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={createTitle}
+                  onChange={(e) => {
+                    setCreateTitle(e.target.value)
+                    setTitleError("")
+                  }}
+                  placeholder="Mission title"
+                  className="w-full px-3 py-2 border border-border rounded-sm bg-card text-foreground font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--tactical-orange)]"
+                />
+                {titleError && (
+                  <p className="font-mono text-xs text-red-400 mt-1">{titleError}</p>
+                )}
+              </div>
+
+              {/* Location Field */}
+              <div>
+                <label className="block font-mono text-xs text-muted-foreground mb-1">
+                  LOCATION
+                </label>
+                <input
+                  type="text"
+                  value={createLocation}
+                  onChange={(e) => setCreateLocation(e.target.value)}
+                  placeholder="Mission location"
+                  className="w-full px-3 py-2 border border-border rounded-sm bg-card text-foreground font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--tactical-orange)]"
+                />
+              </div>
+
+              {/* Priority Dropdown */}
+              <div>
+                <label className="block font-mono text-xs text-muted-foreground mb-1">
+                  PRIORITY
+                </label>
+                <select
+                  value={createPriority}
+                  onChange={(e) => setCreatePriority(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-border rounded-sm bg-card text-foreground font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--tactical-orange)]"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </div>
+
+              {/* Description Field */}
+              <div>
+                <label className="block font-mono text-xs text-muted-foreground mb-1">
+                  DESCRIPTION
+                </label>
+                <textarea
+                  value={createDescription}
+                  onChange={(e) => setCreateDescription(e.target.value)}
+                  placeholder="Mission description (optional)"
+                  className="w-full px-3 py-2 border border-border rounded-sm bg-card text-foreground font-mono text-sm focus:outline-none focus:ring-1 focus:ring-[var(--tactical-orange)] resize-none h-24"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-border bg-muted/20 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setCreateModalOpen(false)}
+                disabled={creating}
+                className="px-4 py-2 border border-border font-mono text-xs tracking-wider rounded-sm hover:bg-muted transition-all disabled:opacity-50"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={handleCreateMission}
+                disabled={creating}
+                className="px-4 py-2 bg-[var(--tactical-orange)] text-black font-mono text-xs tracking-wider rounded-sm hover:bg-[var(--tactical-orange)]/90 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {creating && <Loader2 className="w-4 h-4 animate-spin" />}
+                CREATE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <MissionDetailModal
         missionId={detailId}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        suggestedTeam={suggestedTeam}
+        onAssignVolunteer={handleAssignVolunteer}
       />
     </div>
   )

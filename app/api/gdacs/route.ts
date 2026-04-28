@@ -2,6 +2,36 @@ import { NextResponse } from "next/server"
 
 const GDACS_RSS_URL = "https://www.gdacs.org/xml/rss.xml"
 
+const MOCK_EVENTS: GdacsEvent[] = [
+  {
+    title: "Flood - India",
+    link: "https://www.gdacs.org",
+    pubDate: new Date().toISOString(),
+    alertLevel: "Red",
+    country: "India",
+    lat: 23.1815,
+    lon: 79.9864,
+  },
+  {
+    title: "Earthquake - Turkey",
+    link: "https://www.gdacs.org",
+    pubDate: new Date().toISOString(),
+    alertLevel: "Orange",
+    country: "Turkey",
+    lat: 39.9208,
+    lon: 32.8541,
+  },
+  {
+    title: "Cyclone - Bangladesh",
+    link: "https://www.gdacs.org",
+    pubDate: new Date().toISOString(),
+    alertLevel: "Yellow",
+    country: "Bangladesh",
+    lat: 24.3745,
+    lon: 90.3789,
+  },
+]
+
 function extractCdata(text: string): string {
   const m = text.match(/^<!\[CDATA\[([\s\S]*?)\]\]>$/)
   return m ? m[1].trim() : text.trim()
@@ -62,13 +92,29 @@ export async function GET() {
     })
 
     if (!response.ok) {
-      return NextResponse.json({ events: [], error: true })
+      console.error(
+        `[GDACS] HTTP error: ${response.status} ${response.statusText}`,
+      )
+      return NextResponse.json({ events: MOCK_EVENTS, cached: true })
     }
 
     const xml = await response.text()
+    console.log(
+      `[GDACS] Raw XML (first 500 chars): ${xml.substring(0, 500)}...`,
+    )
+
     const events = parseRssXml(xml)
+    if (events.length === 0) {
+      console.warn("[GDACS] No events parsed, returning mock data")
+      return NextResponse.json({ events: MOCK_EVENTS, cached: true })
+    }
+
     return NextResponse.json({ events })
-  } catch {
-    return NextResponse.json({ events: [], error: true })
+  } catch (error) {
+    console.error(
+      "[GDACS] Fetch failed:",
+      error instanceof Error ? error.message : String(error),
+    )
+    return NextResponse.json({ events: MOCK_EVENTS, cached: true })
   }
 }

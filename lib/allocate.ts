@@ -1,19 +1,29 @@
 // Pure TypeScript — no React or Next.js imports
 
-export interface AllocVolunteer {
+export interface Volunteer {
   id: string
   name: string
   location: string
   skills: string[]
-  availability: "available" | "busy" | "offline"
+  availability?: "available" | "busy" | "offline"
+  available?: boolean
   coordinates?: { lat: number; lng: number } | null
   current_mission?: string
   missions_completed?: number
 }
 
-export interface EventCoords {
-  lat: number
-  lon: number
+export interface AllocationOptions {
+  coordinates?: { lat: number; lng: number } | null
+  requiredSkills?: string[]
+  urgency?: "low" | "medium" | "high" | "critical"
+  volunteersNeeded?: number
+}
+
+export interface SuggestedVolunteer {
+  volunteerId: string
+  volunteerName: string
+  score: number
+  reasons: string[]
 }
 
 function toRad(deg: number): number {
@@ -35,84 +45,115 @@ function haversine(
   return 2 * R * Math.asin(Math.sqrt(a))
 }
 
-const PRIORITY_SKILLS = ["search & rescue", "medical", "emergency response"]
+function isAvailable(vol: Volunteer): boolean {
+  // Handle both "availability" and "available" field names
+  if (vol.availability !== undefined) {
+    return vol.availability === "available"
+  }
+  if (vol.available !== undefined) {
+    return vol.available === true
+  }
+  return true // Default to available if field not present
+}
 
-function hasPrioritySkill(skills: string[]): boolean {
-  return skills.some((s) =>
-    PRIORITY_SKILLS.some((ps) => s.toLowerCase().includes(ps.toLowerCase())),
-  )
+function skillMatch(skills: string[], required: string[]): number {
+  if (required.length === 0) return 0
+  const normalizedVol = skills.map((s) => s.toLowerCase())
+  const normalizedReq = required.map((s) => s.toLowerCase())
+  const matches = normalizedReq.filter((r) =>
+    normalizedVol.some((v) => v.includes(r) || r.includes(v)),
+  ).length
+  return matches / normalizedReq.length
 }
 
 /**
- * Suggests up to 3 available volunteers for a mission.
- * 1. Filters to available volunteers.
- * 2. Sorts by Haversine distance if eventCoords is valid.
- * 3. Floats priority-skill volunteers to top for high/critical priority.
- * 4. Returns top 3.
+ * Suggests volunteers for a mission using Haversine distance + skill scoring
+ * Returns sorted array with reasons
  */
 export function suggestVolunteers(
-  volunteers: AllocVolunteer[],
-  missionPriority: string,
-  eventCoords: EventCoords | null,
-): AllocVolunteer[] {
-  // 1. Filter to available only
-  let pool = volunteers.filter((v) => v.availability === "available")
+  volunteers: Volunteer[],
+  options: AllocationOptions,
+): SuggestedVolunteer[] {
+  const {
+    coordinates,
+    requiredSkills = [],
+    urgency = "medium",
+    volunteersNeeded = 3,
+  } = options
 
-  if (pool.length === 0) return []
+  // 1. Filter to available volunteers
+  let pool = volunteers.filter(isAvailable)
 
-  // 2. Sort by Haversine distance if coords are valid
-  if (
-    eventCoords &&
-    eventCoords.lat != null &&
-    eventCoords.lon != null &&
-    !isNaN(eventCoords.lat) &&
-    !isNaN(eventCoords.lon)
-  ) {
-    pool = [...pool].sort((a, b) => {
-      if (!a.coordinates) return 1
-      if (!b.coordinates) return -1
-      const distA = haversine(
-        a.coordinates.lat,
-        a.coordinates.lng,
-        eventCoords.lat,
-        eventCoords.lon,
+  if (pool.length === 0) {
+    console.log("[v0] No available volunteers in pool")
+    return []
+  }
+
+  console.log(
+    "[v0] Available volunteers pool:",
+    pool.map((v) => ({ id: v.id, name: v.name, availability: v.availability })),
+  )
+
+  // 2. Calculate scores
+  const scored = pool.map((vol) => {
+    let score = 50 // Base score
+
+    // Distance scoring (0-25 points)
+    let distanceScore = 0
+    if (
+      coordinates &&
+      coordinates.lat != null &&
+      coordinates.lng != null &&
+      vol.coordinates?.lat != null &&
+      vol.coordinates?.lng != null
+    ) {
+      const dist = haversine(
+        vol.coordinates.lat,
+        vol.coordinates.lng,
+        coordinates.lat,
+        coordinates.lng,
       )
-      const distB = haversine(
-        b.coordinates.lat,
-        b.coordinates.lng,
-        eventCoords.lat,
-        eventCoords.lon,
-      )
-      return distA - distB
-    })
-  }
+      distanceScore = Math.max(0, 25 - dist / 10) // Closer = higher score
+    }
+    score += distanceScore
 
-  // 3. Float priority-skill volunteers to top for high/critical
-  const priority = missionPriority.toLowerCase()
-  if (priority === "high" || priority === "critical") {
-    const withSkill = pool.filter((v) => hasPrioritySkill(v.skills))
-    const withoutSkill = pool.filter((v) => !hasPrioritySkill(v.skills))
-    pool = [...withSkill, ...withoutSkill]
-  }
+    // Skill matching (0-25 points)
+    let skillScore = 0
+    if (requiredSkills.length > 0) {
+      skillScore = skillMatch(vol.skills, requiredSkills) * 25
+    }
+    score += skillScore
 
-  // 4. Return top 3
-  return pool.slice(0, 3)
-}
+    // Urgency bonus for high/critical (0-10 points)
+    let urgencyBonus = 0
+    if ((urgency === "high" || urgency === "critical") && vol.missions_completed) {
+      urgencyBonus = Math.min(10, vol.missions_completed)
+    }
+    score += urgencyBonus
 
-/** Returns a one-line reason string for a suggested volunteer. */
-export function getSuggestReason(
-  vol: AllocVolunteer,
-  missionPriority: string,
-  hasCoords: boolean,
-): string {
-  const reasons: string[] = []
-  if (hasCoords && vol.coordinates) reasons.push("Closest available")
-  if (hasPrioritySkill(vol.skills)) {
-    const matched = vol.skills.find((s) =>
-      PRIORITY_SKILLS.some((ps) => s.toLowerCase().includes(ps.toLowerCase())),
-    )
-    reasons.push(matched ? `${matched} skill` : "Priority skill")
-  }
-  if (reasons.length === 0) reasons.push("Available team member")
-  return reasons.join(" · ")
+    // Build reasons
+    const reasons: string[] = []
+    if (distanceScore > 0) reasons.push(`Proximity: ${distanceScore.toFixed(0)}pts`)
+    if (skillScore > 0) reasons.push(`Skills: ${skillScore.toFixed(0)}pts`)
+    if (urgencyBonus > 0) reasons.push(`Experience: ${urgencyBonus.toFixed(0)}pts`)
+    if (reasons.length === 0) reasons.push("Available team member")
+
+    return {
+      volunteerId: vol.id,
+      volunteerName: vol.name,
+      score,
+      reasons,
+    }
+  })
+
+  // 3. Sort by score descending
+  scored.sort((a, b) => b.score - a.score)
+
+  console.log(
+    "[v0] Scored suggestions:",
+    scored.slice(0, volunteersNeeded),
+  )
+
+  // 4. Return top N
+  return scored.slice(0, Math.max(1, volunteersNeeded))
 }

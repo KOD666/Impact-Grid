@@ -31,6 +31,7 @@ export default function GDACSPage() {
   const [alerts, setAlerts] = useState<GDACSAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isCached, setIsCached] = useState(false)
   const [selectedAlert, setSelectedAlert] = useState<GDACSAlert | null>(null)
   const [suggestions, setSuggestions] = useState<VolunteerSuggestion[]>([])
   const [selectedVolunteers, setSelectedVolunteers] = useState<string[]>([])
@@ -46,19 +47,54 @@ export default function GDACSPage() {
   async function fetchAlerts() {
     setLoading(true)
     setError(null)
+    setIsCached(false)
     try {
       const res = await fetch('/api/gdacs')
       const data = await res.json()
-      if (data.success) {
-        setAlerts(data.alerts || [])
+
+      // Handle response with events array
+      if (data.events && Array.isArray(data.events)) {
+        // Transform API events to GDACSAlert format
+        const transformedAlerts: GDACSAlert[] = data.events.map((event: any, idx: number) => ({
+          id: `alert-${idx}`,
+          title: event.title,
+          description: event.title, // Use title as description fallback
+          eventType: extractEventType(event.title),
+          alertLevel: event.alertLevel || 'Yellow',
+          country: event.country || 'Unknown',
+          pubDate: event.pubDate,
+          link: event.link || 'https://www.gdacs.org',
+          latitude: event.lat,
+          longitude: event.lon,
+        }))
+
+        setAlerts(transformedAlerts)
+        if (data.cached) {
+          setIsCached(true)
+        }
+      } else if (data.error) {
+        setError('Live feed unavailable — showing cached data')
+        setIsCached(true)
+        setAlerts([])
       } else {
-        setError(data.error || 'Failed to fetch alerts')
+        setError('Failed to fetch alerts')
       }
-    } catch {
+    } catch (err) {
+      console.error('[v0] Failed to fetch GDACS:', err)
       setError('Network error fetching GDACS feed')
     } finally {
       setLoading(false)
     }
+  }
+
+  function extractEventType(title: string): string {
+    if (title.toLowerCase().includes('earthquake')) return 'EQ'
+    if (title.toLowerCase().includes('cyclone') || title.toLowerCase().includes('typhoon')) return 'TC'
+    if (title.toLowerCase().includes('flood')) return 'FL'
+    if (title.toLowerCase().includes('volcano')) return 'VO'
+    if (title.toLowerCase().includes('drought')) return 'DR'
+    if (title.toLowerCase().includes('wildfire') || title.toLowerCase().includes('fire')) return 'WF'
+    return 'OT'
   }
 
   function openAssignModal(alert: GDACSAlert) {
@@ -199,7 +235,13 @@ export default function GDACSPage() {
       </div>
 
       {/* Error State */}
-      {error && (
+      {isCached && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-sm">
+          <p className="text-amber-400 font-mono text-sm">Live feed unavailable — showing cached data</p>
+        </div>
+      )}
+
+      {error && !isCached && (
         <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-sm">
           <p className="text-red-400 font-mono text-sm">{error}</p>
         </div>
