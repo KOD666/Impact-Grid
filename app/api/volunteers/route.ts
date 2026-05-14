@@ -125,7 +125,7 @@ export async function POST(request: Request) {
 
     // Fallback to data store
     const added = dataStore.addVolunteer(volunteer)
-    return NextResponse.json({ success: true, data: added })
+    return NextResponse.json(added, { status: 201 })
   } catch (error) {
     console.error('[v0] Volunteers POST error:', error)
     return NextResponse.json(

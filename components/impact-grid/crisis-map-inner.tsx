@@ -41,6 +41,8 @@ interface CrisisMapInnerProps {
   markers: CrisisMarker[]
   teams?: TeamMarker[]
   externalMarkers?: ExternalMarker[]
+  usgsEarthquakes?: ExternalMarker[]
+  gdacsDisasters?: ExternalMarker[]
   showRoutes?: boolean
   center?: [number, number]
   zoom?: number
@@ -175,6 +177,8 @@ export default function CrisisMapInner({
   markers,
   teams = [],
   externalMarkers = [],
+  usgsEarthquakes = [],
+  gdacsDisasters = [],
   showRoutes = false,
   center,
   zoom = 12,
@@ -192,8 +196,8 @@ export default function CrisisMapInner({
     gdacs: true,
   })
 
-  const usgsMarkers = externalMarkers.filter((m) => m.source === "usgs")
-  const gdacsMarkers = externalMarkers.filter((m) => m.source === "gdacs")
+  const magToColor = (mag: number) =>
+    mag >= 6 ? "#ef4444" : mag >= 5 ? "#f97316" : "#eab308";
 
   const layers = [
     {
@@ -208,14 +212,14 @@ export default function CrisisMapInner({
       label: "USGS",
       color: "#f97316",
       enabled: layerVisibility.usgs,
-      count: usgsMarkers.length,
+      count: usgsEarthquakes.length,
     },
     {
       id: "gdacs",
       label: "GDACS",
       color: "#ef4444",
       enabled: layerVisibility.gdacs,
-      count: gdacsMarkers.length,
+      count: gdacsDisasters.length,
     },
   ]
 
@@ -311,16 +315,17 @@ export default function CrisisMapInner({
 
         {/* USGS earthquake markers */}
         {layerVisibility.usgs &&
-          usgsMarkers.map((m) => {
+          usgsEarthquakes.map((m) => {
             const radius = magToRadius(m.magnitude)
             const timeAgo = m.timestamp ? formatTimeAgo(new Date(m.timestamp)) : undefined
+            const fillColor = m.magnitude ? magToColor(m.magnitude) : m.markerColor
             return (
               <CircleMarker
                 key={m.id}
                 center={[m.lat, m.lng]}
                 radius={radius}
                 pathOptions={{
-                  fillColor: m.markerColor,
+                  fillColor,
                   fillOpacity: 0.6,
                   stroke: false,
                 }}
@@ -341,7 +346,7 @@ export default function CrisisMapInner({
                           width: 8,
                           height: 8,
                           borderRadius: "50%",
-                          background: m.markerColor,
+                          background: fillColor,
                         }}
                       />
                       USGS
@@ -377,7 +382,7 @@ export default function CrisisMapInner({
 
         {/* GDACS disaster markers */}
         {layerVisibility.gdacs &&
-          gdacsMarkers.map((m) => (
+          gdacsDisasters.map((m) => (
             <CircleMarker
               key={m.id}
               center={[m.lat, m.lng]}
@@ -465,7 +470,7 @@ export default function CrisisMapInner({
       <LayerLegend layers={layers} onToggle={handleToggle} />
 
       {/* Earthquake magnitude legend (bottom-left) */}
-      {layerVisibility.usgs && usgsMarkers.length > 0 && (
+      {layerVisibility.usgs && usgsEarthquakes.length > 0 && (
         <div
           style={{
             position: "absolute",

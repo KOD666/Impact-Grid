@@ -138,10 +138,11 @@ export function VolunteerCard({ volunteer, onChanged }: VolunteerCardProps) {
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
+          disabled={volunteer.availability === "busy" || !!volunteer.current_mission}
           onClick={() => setAssignOpen(true)}
-          className="flex-1 px-3 py-1.5 bg-[var(--tactical-orange)] text-primary-foreground font-mono text-[10px] tracking-wider font-semibold rounded-sm hover:brightness-110"
+          className="flex-1 px-3 py-1.5 bg-[var(--tactical-orange)] text-primary-foreground font-mono text-[10px] tracking-wider font-semibold rounded-sm hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          ASSIGN MISSION
+          {volunteer.availability === "busy" || !!volunteer.current_mission ? "ASSIGNED" : "ASSIGN MISSION"}
         </button>
         <Link
           href={`/personnel/${volunteer.id}`}
