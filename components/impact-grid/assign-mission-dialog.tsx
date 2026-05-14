@@ -325,10 +325,10 @@ export function AssignMissionDialog({
                   {!aiLoading && (
                     <div className="space-y-2">
                       {(volunteers || [])
-                        .filter((v) => v.availability === "available")
                         .slice(0, 10)
                         .map((vol) => {
                           const isSelected = selectedVolunteers.includes(vol.id)
+                          const isBusy = vol.availability === "busy" || !!vol.current_mission
                           return (
                             <button
                               key={vol.id}
@@ -343,6 +343,11 @@ export function AssignMissionDialog({
                               <div className="flex items-center gap-2">
                                 <User className="w-4 h-4 text-muted-foreground" />
                                 <span className="font-mono text-sm">{vol.name}</span>
+                                {isBusy && (
+                                  <span className="font-mono text-[9px] px-1.5 py-0.5 bg-[var(--tactical-orange)]/20 text-[var(--tactical-orange)] rounded-sm ml-2">
+                                    {vol.current_mission ? `ASSIGNED: ${vol.current_mission}` : "BUSY"}
+                                  </span>
+                                )}
                                 {isSelected && (
                                   <CheckCircle className="w-3.5 h-3.5 text-[var(--tactical-green)] ml-auto" />
                                 )}

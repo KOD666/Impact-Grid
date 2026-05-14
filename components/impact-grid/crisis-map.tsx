@@ -97,6 +97,8 @@ export function CrisisMap({
           markers={markers}
           teams={teams}
           externalMarkers={externalMarkers}
+          usgsEarthquakes={usgsMarkers}
+          gdacsDisasters={gdacsMarkers}
           showRoutes={showRoutes}
           center={center}
           zoom={zoom}

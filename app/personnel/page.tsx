@@ -1,6 +1,7 @@
 'use client'
 
 import { useContext, useState, useCallback } from 'react'
+import { mutate } from 'swr'
 import { AppContext, useAppContext } from '@/components/providers/app-provider'
 import { Sidebar } from '@/components/impact-grid/sidebar'
 import { TopNav } from '@/components/impact-grid/top-nav'
@@ -58,6 +59,7 @@ export default function PersonnelPage() {
       })
 
       if (response.ok) {
+        await mutate('/api/volunteers')
         setFormData({ name: '', role: '', skills: '', location: '', available: true })
         setShowAddForm(false)
       }
