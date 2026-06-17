@@ -62,18 +62,49 @@ function parseRssXml(xml: string): GdacsEvent[] {
     const pubDate = getTag("pubDate")
     const alertLevel = getTag("gdacs:alertlevel")
     const country = getTag("gdacs:country")
-    const coordsRaw = getTag("gdacs:coordinates")
+    const eventtype = getTag("gdacs:eventtype")
+    const eventid = getTag("gdacs:eventid")
 
     let lat: number | null = null
     let lon: number | null = null
-    if (coordsRaw) {
-      const parts = coordsRaw.trim().split(/\s+/)
-      if (parts.length >= 2) {
-        const a = parseFloat(parts[0])
-        const b = parseFloat(parts[1])
-        if (!isNaN(a) && !isNaN(b)) {
-          lat = a
-          lon = b
+
+    // Try geo:Point first
+    const geoLatStr = getTag("geo:lat")
+    const geoLonStr = getTag("geo:long")
+    if (geoLatStr && geoLonStr) {
+      const a = parseFloat(geoLatStr)
+      const b = parseFloat(geoLonStr)
+      if (!isNaN(a) && !isNaN(b)) {
+        lat = a
+        lon = b
+      }
+    }
+
+    // Fallback to georss:point (lat lon space-separated)
+    if (!lat || !lon) {
+      const georssPoint = getTag("georss:point")
+      if (georssPoint) {
+        const parts = georssPoint.trim().split(/\s+/)
+        if (parts.length >= 2) {
+          const a = parseFloat(parts[0])
+          const b = parseFloat(parts[1])
+          if (!isNaN(a) && !isNaN(b)) {
+            lat = a
+            lon = b
+          }
+        }
+      }
+    }
+
+    // Fallback to gdacs:bbox center
+    if (!lat || !lon) {
+      const bbox = getTag("gdacs:bbox")
+      if (bbox) {
+        const parts = bbox.trim().split(/\s+/).map(p => parseFloat(p)).filter(n => !isNaN(n))
+        if (parts.length === 4) {
+          const [minLon, maxLon, minLat, maxLat] = parts
+          lat = (minLat + maxLat) / 2
+          lon = (minLon + maxLon) / 2
         }
       }
     }

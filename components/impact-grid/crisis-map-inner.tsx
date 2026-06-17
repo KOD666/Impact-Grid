@@ -12,7 +12,7 @@ import {
 } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
-import type { ExternalMarker } from "@/hooks/use-dashboard"
+import type { ExternalMarker, UsgsEarthquake, GdacsDisaster } from "@/hooks/use-dashboard"
 import { magToRadius } from "@/hooks/use-dashboard"
 
 export interface CrisisMarker {
@@ -41,6 +41,8 @@ interface CrisisMapInnerProps {
   markers: CrisisMarker[]
   teams?: TeamMarker[]
   externalMarkers?: ExternalMarker[]
+  usgsEarthquakes?: UsgsEarthquake[]
+  gdacsDisasters?: GdacsDisaster[]
   showRoutes?: boolean
   center?: [number, number]
   zoom?: number
@@ -175,6 +177,8 @@ export default function CrisisMapInner({
   markers,
   teams = [],
   externalMarkers = [],
+  usgsEarthquakes = [],
+  gdacsDisasters = [],
   showRoutes = false,
   center,
   zoom = 12,
@@ -192,9 +196,6 @@ export default function CrisisMapInner({
     gdacs: true,
   })
 
-  const usgsMarkers = externalMarkers.filter((m) => m.source === "usgs")
-  const gdacsMarkers = externalMarkers.filter((m) => m.source === "gdacs")
-
   const layers = [
     {
       id: "internal",
@@ -208,14 +209,14 @@ export default function CrisisMapInner({
       label: "USGS",
       color: "#f97316",
       enabled: layerVisibility.usgs,
-      count: usgsMarkers.length,
+      count: usgsEarthquakes.length,
     },
     {
       id: "gdacs",
       label: "GDACS",
       color: "#ef4444",
       enabled: layerVisibility.gdacs,
-      count: gdacsMarkers.length,
+      count: gdacsDisasters.length,
     },
   ]
 
@@ -311,64 +312,22 @@ export default function CrisisMapInner({
 
         {/* USGS earthquake markers */}
         {layerVisibility.usgs &&
-          usgsMarkers.map((m) => {
-            const radius = magToRadius(m.magnitude)
-            const timeAgo = m.timestamp ? formatTimeAgo(new Date(m.timestamp)) : undefined
+          usgsEarthquakes.map((eq) => {
+            const color = eq.mag >= 6 ? '#ef4444' : eq.mag >= 5 ? '#f97316' : '#eab308'
             return (
               <CircleMarker
-                key={m.id}
-                center={[m.lat, m.lng]}
-                radius={radius}
+                key={eq.id}
+                center={[eq.lat, eq.lon]}
+                radius={eq.mag * 3}
                 pathOptions={{
-                  fillColor: m.markerColor,
+                  fillColor: color,
                   fillOpacity: 0.6,
                   stroke: false,
                 }}
               >
                 <Popup>
                   <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 180 }}>
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        marginBottom: 4,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          background: m.markerColor,
-                        }}
-                      />
-                      USGS
-                    </div>
-                    <div style={{ marginBottom: 4 }}>
-                      {m.detail} — {m.title?.replace(/^M \d+\.\d+ - /, "")}
-                    </div>
-                    {timeAgo && (
-                      <div style={{ opacity: 0.7, fontSize: 10, marginBottom: 4 }}>
-                        {timeAgo}
-                      </div>
-                    )}
-                    {m.url && (
-                      <a
-                        href={m.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: "inline-block",
-                          marginTop: 6,
-                          color: "#3b82f6",
-                          fontSize: 11,
-                        }}
-                      >
-                        View on USGS
-                      </a>
-                    )}
+                    {`M${eq.mag} — ${eq.place}`}
                   </div>
                 </Popup>
               </CircleMarker>
@@ -377,52 +336,30 @@ export default function CrisisMapInner({
 
         {/* GDACS disaster markers */}
         {layerVisibility.gdacs &&
-          gdacsMarkers.map((m) => (
-            <CircleMarker
-              key={m.id}
-              center={[m.lat, m.lng]}
-              radius={9}
-              pathOptions={{
-                color: m.markerColor,
-                weight: 2,
-                fillColor: m.markerColor,
-                fillOpacity: 0.55,
-              }}
-            >
-              <Popup>
-                <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 180 }}>
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      marginBottom: 4,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: m.markerColor,
-                      }}
-                    />
-                    GDACS
+          gdacsDisasters.map((ev) => {
+            const color =
+              ev.alertLevel === 'red' ? '#ef4444' :
+              ev.alertLevel === 'orange' ? '#f97316' :
+              ev.alertLevel === 'yellow' ? '#eab308' : '#22c55e'
+            return (
+              <CircleMarker
+                key={ev.id}
+                center={[ev.lat, ev.lon]}
+                radius={8}
+                pathOptions={{
+                  fillColor: color,
+                  fillOpacity: 0.7,
+                  stroke: false,
+                }}
+              >
+                <Popup>
+                  <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 180 }}>
+                    {`${ev.title} — ${ev.alertLevel?.toUpperCase()}`}
                   </div>
-                  <div style={{ marginBottom: 4 }}>{m.title}</div>
-                  {m.detail && (
-                    <div style={{ fontWeight: 700, color: m.markerColor }}>{m.detail}</div>
-                  )}
-                  {m.timestamp && (
-                    <div style={{ opacity: 0.7, fontSize: 10, marginTop: 4 }}>
-                      {new Date(m.timestamp).toLocaleDateString()}
-                    </div>
-                  )}
-                </div>
-              </Popup>
-            </CircleMarker>
-          ))}
+                </Popup>
+              </CircleMarker>
+            )
+          })}
 
         {/* Team markers */}
         {teams.map((t) => (
@@ -465,7 +402,7 @@ export default function CrisisMapInner({
       <LayerLegend layers={layers} onToggle={handleToggle} />
 
       {/* Earthquake magnitude legend (bottom-left) */}
-      {layerVisibility.usgs && usgsMarkers.length > 0 && (
+      {layerVisibility.usgs && usgsEarthquakes.length > 0 && (
         <div
           style={{
             position: "absolute",
