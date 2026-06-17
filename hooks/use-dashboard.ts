@@ -228,7 +228,7 @@ export function useGdacsDisasters() {
       lat: center[0],
       lng: center[1],
       urgency,
-      markerColor: "#ef4444", // red for GDACS
+      markerColor: urgencyToColor(urgency),
       category: typeName.toLowerCase(),
       detail: p.alertlevel
         ? `Alert: ${p.alertlevel.toUpperCase()}`

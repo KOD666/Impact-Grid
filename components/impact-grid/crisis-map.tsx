@@ -99,7 +99,7 @@ export function CrisisMap({
         <CrisisMapInner
           markers={markers}
           teams={teams}
-          externalMarkers={externalMarkers}
+          externalMarkers={showExternalFeeds ? [...usgsMarkers, ...gdacsMarkers] : []}
           showRoutes={showRoutes}
           center={center}
           zoom={zoom}
