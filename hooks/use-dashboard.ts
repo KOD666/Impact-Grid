@@ -9,7 +9,7 @@ const fetcher = (url: string) => fetch(url).then(res => res.json())
 // ---------------------------------------------------------------------------
 
 const USGS_URL =
-  "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_7days.geojson"
+  "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson"
 
 export type ExternalUrgency = "critical" | "high" | "medium"
 
