@@ -84,6 +84,9 @@ export function CrisisMap({
               +{totalExternalCount} EXT_FEEDS
             </span>
           )}
+          <span className="font-mono text-[10px] text-muted-foreground">
+            {markers.length} ACTIVE MARKERS
+          </span>
           {subtitle && (
             <span className="font-mono text-[10px] text-muted-foreground">
               {subtitle}

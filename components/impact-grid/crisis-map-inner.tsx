@@ -13,7 +13,7 @@ import {
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 import type { ExternalMarker } from "@/hooks/use-dashboard"
-import { magToRadius } from "@/hooks/use-dashboard"
+import { magToRadius, formatTimeAgo } from "@/hooks/use-dashboard"
 
 export interface CrisisMarker {
   id: string
@@ -56,16 +56,7 @@ function urgencyColor(urgency: number): string {
   return "#22c55e" // green
 }
 
-function formatTimeAgo(date: Date): string {
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  if (diffMins < 60) return `${diffMins} minutes ago`
-  const diffHours = Math.floor(diffMins / 60)
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`
-  const diffDays = Math.floor(diffHours / 24)
-  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`
-}
+
 
 const personIcon = L.divIcon({
   className: "team-marker",
@@ -313,7 +304,7 @@ export default function CrisisMapInner({
         {layerVisibility.usgs &&
           usgsMarkers.map((m) => {
             const radius = magToRadius(m.magnitude)
-            const timeAgo = m.timestamp ? formatTimeAgo(new Date(m.timestamp)) : undefined
+            const timeAgo = m.timestamp ? formatTimeAgo(m.timestamp) : undefined
             return (
               <CircleMarker
                 key={m.id}
@@ -326,28 +317,12 @@ export default function CrisisMapInner({
                 }}
               >
                 <Popup>
-                  <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 180 }}>
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        marginBottom: 4,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          background: m.markerColor,
-                        }}
-                      />
-                      USGS
+                  <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 200 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                      <strong>{m.detail}</strong>
                     </div>
                     <div style={{ marginBottom: 4 }}>
-                      {m.detail} — {m.title?.replace(/^M \d+\.\d+ - /, "")}
+                      {m.title?.replace(/^M \d+\.\d+ - /, "")}
                     </div>
                     {timeAgo && (
                       <div style={{ opacity: 0.7, fontSize: 10, marginBottom: 4 }}>
@@ -366,7 +341,7 @@ export default function CrisisMapInner({
                           fontSize: 11,
                         }}
                       >
-                        View on USGS
+                        View on USGS →
                       </a>
                     )}
                   </div>
@@ -381,41 +356,26 @@ export default function CrisisMapInner({
             <CircleMarker
               key={m.id}
               center={[m.lat, m.lng]}
-              radius={9}
+              radius={8}
               pathOptions={{
-                color: m.markerColor,
-                weight: 2,
+                color: "#000",
+                weight: 1,
                 fillColor: m.markerColor,
-                fillOpacity: 0.55,
+                fillOpacity: 0.7,
               }}
             >
               <Popup>
-                <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 180 }}>
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      marginBottom: 4,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: m.markerColor,
-                      }}
-                    />
-                    GDACS
+                <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 200 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                    {m.title}
                   </div>
-                  <div style={{ marginBottom: 4 }}>{m.title}</div>
                   {m.detail && (
-                    <div style={{ fontWeight: 700, color: m.markerColor }}>{m.detail}</div>
+                    <div style={{ fontWeight: 700, color: m.markerColor, marginBottom: 4 }}>
+                      {m.detail}
+                    </div>
                   )}
                   {m.timestamp && (
-                    <div style={{ opacity: 0.7, fontSize: 10, marginTop: 4 }}>
+                    <div style={{ opacity: 0.7, fontSize: 10 }}>
                       {new Date(m.timestamp).toLocaleDateString()}
                     </div>
                   )}

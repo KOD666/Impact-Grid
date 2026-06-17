@@ -49,6 +49,12 @@ const categories = [
   "other",
 ]
 
+const KNOWN_LOCATIONS = [
+  'Los Angeles, CA', 'Houston, TX', 'Miami, FL', 'Chicago, IL',
+  'Phoenix, AZ', 'Seattle, WA', 'Denver, CO', 'Atlanta, GA',
+  'New York, NY', 'San Jose, CA', 'Dallas, TX', 'Global'
+]
+
 export default function ReportsPage() {
   const { data, isLoading: loadingDash } = useDashboard()
   const { missions } = useMissions()
@@ -60,6 +66,7 @@ export default function ReportsPage() {
   // Form state
   const [reportText, setReportText] = useState("")
   const [location, setLocation] = useState("")
+  const [locationError, setLocationError] = useState("")
   const [category, setCategory] = useState("other")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [currentSummary, setCurrentSummary] = useState<GeminiSummary | null>(null)
@@ -109,7 +116,14 @@ export default function ReportsPage() {
   // Handle form submission
   const handleSubmit = async () => {
     if (!reportText.trim()) return
-
+    
+    // Validate location
+    if (!location.trim()) {
+      setLocationError("LOCATION_REQUIRED")
+      return
+    }
+    
+    setLocationError("")
     setIsAnalyzing(true)
     setCurrentSummary(null)
 
@@ -159,7 +173,7 @@ export default function ReportsPage() {
   }
 
   // Download PDF
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = async (autoTrigger = false) => {
     if (!analysisRef.current || !currentSummary) return
 
     const html2canvas = (await import("html2canvas")).default
@@ -195,11 +209,22 @@ export default function ReportsPage() {
       
       // Download
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
-      pdf.save(`impactgrid-report-${timestamp}.pdf`)
+      pdf.save(`ImpactGrid_Report_${timestamp}.pdf`)
     } catch (error) {
       console.error("[v0] PDF generation error:", error)
     }
   }
+  
+  // Auto-trigger download when summary is ready
+  useEffect(() => {
+    if (currentSummary && analysisRef.current) {
+      // Wait a bit for the UI to render, then auto-download
+      const timer = setTimeout(() => {
+        handleDownloadPDF(true)
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [currentSummary])
 
   const generatedAt = new Date().toLocaleString("en-US", {
     dateStyle: "full",
@@ -263,18 +288,37 @@ export default function ReportsPage() {
                   {/* Location */}
                   <div>
                     <label className="block font-mono text-[10px] text-muted-foreground mb-2">
-                      LOCATION
+                      LOCATION {!location.trim() && locationError && <span className="text-[var(--tactical-red)]">*</span>}
                     </label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <input
                         type="text"
                         value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        placeholder="e.g. Sector 4-B, Northern District"
-                        className="w-full h-9 pl-9 pr-4 bg-muted border border-border rounded-sm font-mono text-xs placeholder:text-muted-foreground focus:outline-none focus:border-[var(--tactical-orange)]"
+                        onChange={(e) => {
+                          setLocation(e.target.value)
+                          if (e.target.value.trim()) setLocationError("")
+                        }}
+                        placeholder="e.g. Los Angeles, CA"
+                        list="locations-list"
+                        className={cn(
+                          "w-full h-9 pl-9 pr-4 bg-muted border rounded-sm font-mono text-xs placeholder:text-muted-foreground focus:outline-none",
+                          locationError && !location.trim()
+                            ? "border-[var(--tactical-red)] focus:border-[var(--tactical-red)]"
+                            : "border-border focus:border-[var(--tactical-orange)]"
+                        )}
                       />
+                      <datalist id="locations-list">
+                        {KNOWN_LOCATIONS.map((loc) => (
+                          <option key={loc} value={loc} />
+                        ))}
+                      </datalist>
                     </div>
+                    {locationError && !location.trim() && (
+                      <p className="font-mono text-[10px] text-[var(--tactical-red)] mt-1">
+                        {locationError}
+                      </p>
+                    )}
                   </div>
 
                   {/* Category */}
@@ -302,7 +346,7 @@ export default function ReportsPage() {
                   <button
                     type="button"
                     onClick={handleSubmit}
-                    disabled={isAnalyzing || !reportText.trim()}
+                    disabled={isAnalyzing || !reportText.trim() || !location.trim()}
                     className="w-full h-10 bg-[var(--tactical-orange)] text-primary-foreground font-mono text-xs font-semibold tracking-wider rounded-sm hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isAnalyzing ? (

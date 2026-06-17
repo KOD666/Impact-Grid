@@ -139,9 +139,16 @@ export function VolunteerCard({ volunteer, onChanged }: VolunteerCardProps) {
         <button
           type="button"
           onClick={() => setAssignOpen(true)}
-          className="flex-1 px-3 py-1.5 bg-[var(--tactical-orange)] text-primary-foreground font-mono text-[10px] tracking-wider font-semibold rounded-sm hover:brightness-110"
+          disabled={volunteer.availability === "busy" || !!volunteer.current_mission}
+          title={volunteer.current_mission ? `Currently on mission: ${volunteer.current_mission}` : ""}
+          className={cn(
+            "flex-1 px-3 py-1.5 font-mono text-[10px] tracking-wider font-semibold rounded-sm",
+            volunteer.availability === "busy" || !!volunteer.current_mission
+              ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+              : "bg-[var(--tactical-orange)] text-primary-foreground hover:brightness-110"
+          )}
         >
-          ASSIGN MISSION
+          {volunteer.current_mission ? "ASSIGNED" : "ASSIGN MISSION"}
         </button>
         <Link
           href={`/personnel/${volunteer.id}`}

@@ -7,11 +7,12 @@ import { TopNav } from '@/components/impact-grid/top-nav'
 import { DeployResponseBar } from '@/components/impact-grid/deploy-response-bar'
 import { VolunteerCard } from '@/components/impact-grid/volunteer-card'
 import { PersonnelFilterBar } from '@/components/impact-grid/personnel-filter-bar'
-import { removeVolunteer } from '@/hooks/use-dashboard'
+import { removeVolunteer, useVolunteers } from '@/hooks/use-dashboard'
 import type { Volunteer } from '@/lib/types'
 
 export default function PersonnelPage() {
   const { volunteers } = useContext(AppContext)!
+  const { refresh: refreshVolunteers } = useVolunteers()
   const { role } = useAppContext()
   const canAddVolunteer = role === "commander" || role === "coordinator"
   const [showAddForm, setShowAddForm] = useState(false)
@@ -60,11 +61,13 @@ export default function PersonnelPage() {
       if (response.ok) {
         setFormData({ name: '', role: '', skills: '', location: '', available: true })
         setShowAddForm(false)
+        // Refresh the volunteers list
+        await refreshVolunteers()
       }
     } finally {
       setIsSubmitting(false)
     }
-  }, [formData])
+  }, [formData, refreshVolunteers])
 
   const handleRemove = useCallback(async (id: string) => {
     try {
