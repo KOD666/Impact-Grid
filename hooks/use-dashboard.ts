@@ -161,9 +161,11 @@ const GDACS_TYPE_NAMES: Record<string, string> = {
 }
 
 function gdacsAlertToUrgency(level?: string): ExternalUrgency {
-  const v = (level ?? "").toLowerCase()
-  if (v === "red") return "critical"
-  if (v === "orange") return "high"
+  const v = (level ?? "").toLowerCase().trim()
+  // Handle various alert level formats
+  if (v === "red" || v === "critical") return "critical"
+  if (v === "orange" || v === "alert" || v === "high" || v === "yellow") return "high"
+  if (v === "green" || v === "medium" || v === "") return "medium"
   return "medium"
 }
 

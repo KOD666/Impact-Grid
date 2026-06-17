@@ -28,6 +28,15 @@ interface VolunteerSuggestion {
   reasons: string[]
 }
 
+function normalizeAlertLevel(level: any): string {
+  if (!level) return 'Green'
+  const str = String(level).toLowerCase().trim()
+  if (str.includes('red') || str === 'critical') return 'Red'
+  if (str.includes('orange') || str === 'high' || str === 'alert') return 'Orange'
+  if (str.includes('yellow') || str === 'medium') return 'Orange'
+  return 'Green'
+}
+
 export default function GDACSPage() {
   const { volunteers, role } = useAppContext()
   const [alerts, setAlerts] = useState<GDACSAlert[]>([])
@@ -57,18 +66,24 @@ export default function GDACSPage() {
       // Handle response with events array
       if (data.events && Array.isArray(data.events)) {
         // Transform API events to GDACSAlert format
-        const transformedAlerts: GDACSAlert[] = data.events.map((event: any, idx: number) => ({
-          id: `alert-${idx}`,
-          title: event.title,
-          description: event.title, // Use title as description fallback
-          eventType: extractEventType(event.title),
-          alertLevel: event.alertLevel || 'Yellow',
-          country: event.country || 'Unknown',
-          pubDate: event.pubDate,
-          link: event.link || 'https://www.gdacs.org',
-          latitude: event.lat,
-          longitude: event.lon,
-        }))
+        const transformedAlerts: GDACSAlert[] = data.events.map((event: any, idx: number) => {
+          // Normalize alert level to Red, Orange, or Green
+          const rawLevel = event.alertLevel || event.alert_level || 'Green'
+          const normalizedLevel = normalizeAlertLevel(rawLevel)
+          
+          return {
+            id: `alert-${idx}`,
+            title: event.title || event.name || 'Unknown Alert',
+            description: event.title || event.name || 'Unknown Alert', // Use title as description fallback
+            eventType: extractEventType(event.title || event.eventtype || ''),
+            alertLevel: normalizedLevel,
+            country: event.country || 'Unknown',
+            pubDate: event.pubDate || event.fromdate || new Date().toISOString(),
+            link: event.link || 'https://www.gdacs.org',
+            latitude: event.lat || event.latitude,
+            longitude: event.lon || event.longitude,
+          }
+        })
 
         setAlerts(transformedAlerts)
         if (data.cached) {
@@ -209,8 +224,9 @@ export default function GDACSPage() {
   }
 
   function getAlertColor(level: string) {
-    if (level === 'Red') return 'text-red-400 bg-red-500/20 border-red-500/30'
-    if (level === 'Orange') return 'text-orange-400 bg-orange-500/20 border-orange-500/30'
+    const normalized = normalizeAlertLevel(level)
+    if (normalized === 'Red') return 'text-red-400 bg-red-500/20 border-red-500/30'
+    if (normalized === 'Orange') return 'text-orange-400 bg-orange-500/20 border-orange-500/30'
     return 'text-green-400 bg-green-500/20 border-green-500/30'
   }
 

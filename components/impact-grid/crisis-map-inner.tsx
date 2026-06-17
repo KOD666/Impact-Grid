@@ -186,6 +186,15 @@ export default function CrisisMapInner({
   const usgsMarkers = externalMarkers.filter((m) => m.source === "usgs")
   const gdacsMarkers = externalMarkers.filter((m) => m.source === "gdacs")
 
+  // Determine GDACS layer color based on highest severity
+  const gdacsColor = gdacsMarkers.length === 0 
+    ? "#22c55e" 
+    : gdacsMarkers.some(m => m.urgency === 'critical')
+      ? '#ef4444'  // red for critical
+      : gdacsMarkers.some(m => m.urgency === 'high')
+        ? '#f97316' // orange for high
+        : '#eab308' // yellow for medium
+
   const layers = [
     {
       id: "internal",
@@ -204,7 +213,7 @@ export default function CrisisMapInner({
     {
       id: "gdacs",
       label: "GDACS",
-      color: "#ef4444",
+      color: gdacsColor,
       enabled: layerVisibility.gdacs,
       count: gdacsMarkers.length,
     },
