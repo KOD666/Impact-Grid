@@ -70,7 +70,16 @@ export default function GDACSPage() {
           longitude: event.lon,
         }))
 
-        setAlerts(transformedAlerts)
+        // Deduplicate by title-country-date
+        const seen = new Set<string>()
+        const uniqueAlerts = transformedAlerts.filter((alert) => {
+          const key = `${alert.title}-${alert.country}-${alert.pubDate}`
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+
+        setAlerts(uniqueAlerts)
         if (data.cached) {
           setIsCached(true)
         }
@@ -214,6 +223,12 @@ export default function GDACSPage() {
     return 'text-green-400 bg-green-500/20 border-green-500/30'
   }
 
+  function getCardBorderColor(level: string) {
+    if (level === 'Red') return 'border-l-4 border-l-red-500'
+    if (level === 'Orange') return 'border-l-4 border-l-orange-500'
+    return 'border-l-4 border-l-green-500'
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
@@ -268,6 +283,7 @@ export default function GDACSPage() {
               key={alert.id}
               className={cn(
                 "bg-card border border-border rounded-sm overflow-hidden hover:border-muted-foreground/50 transition-all",
+                getCardBorderColor(alert.alertLevel),
                 created.includes(alert.id) && "opacity-50"
               )}
             >

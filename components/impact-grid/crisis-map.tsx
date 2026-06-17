@@ -55,16 +55,8 @@ export function CrisisMap({
   showExternalFeeds = true,
 }: CrisisMapProps) {
   // Fetch external data feeds
-  const { markers: usgsMarkers } = useUsgsEarthquakes()
-  const { markers: gdacsMarkers } = useGdacsDisasters()
-
-  // Combine external markers
-  const externalMarkers = externalMarkersProp ?? [
-    ...(showExternalFeeds ? usgsMarkers : []),
-    ...(showExternalFeeds ? gdacsMarkers : []),
-  ]
-
-  const totalExternalCount = usgsMarkers.length + gdacsMarkers.length
+  const usgsEarthquakes = useUsgsEarthquakes()
+  const gdacsDisasters = useGdacsDisasters()
 
   return (
     <div
@@ -79,9 +71,9 @@ export function CrisisMap({
           {title}
         </p>
         <div className="flex items-center gap-3">
-          {showExternalFeeds && totalExternalCount > 0 && (
+          {showExternalFeeds && (gdacsDisasters.length > 0) && (
             <span className="font-mono text-[10px] text-muted-foreground">
-              +{totalExternalCount} EXT_FEEDS
+              +{gdacsDisasters.length} EXT_FEEDS
             </span>
           )}
           {subtitle && (
@@ -96,7 +88,9 @@ export function CrisisMap({
         <CrisisMapInner
           markers={markers}
           teams={teams}
-          externalMarkers={externalMarkers}
+          externalMarkers={externalMarkersProp}
+          usgsEarthquakes={usgsEarthquakes}
+          gdacsDisasters={gdacsDisasters}
           showRoutes={showRoutes}
           center={center}
           zoom={zoom}
